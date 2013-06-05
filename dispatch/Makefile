@@ -2,21 +2,30 @@
 CC = g++
 CFLAGS = -Wall
 
-all: dispatch
+SRC = main.cpp messages.cpp
+APP = dispatch
+
+OBJS = $(SRC:%.cpp=%.o)
+
+MAKEDEPEND = $(CC) -MM $(CPPFLAGS) -o $*.d $<
+
+all: $(APP)
 
 clean:
-	rm dispatch
-	rm *.o
+	rm -f $(APP) $(OBJS) *.d
 
-dispatch: main.o messages.o
+test: $(APP)
+	./$(APP)
+
+$(APP): $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $^
 
-messages.o: messages.cpp dispatch.h list.h messages.h
+%.d : %.cpp
+	$(MAKEDEPEND)
+
+%.o : %.cpp 
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-main.o: main.cpp dispatch.h list.h messages.h
-	$(CC) $(CFLAGS) -c -o $@ $<
+-include $(SRC:%.cpp=%.d)
 
-test: dispatch
-	./dispatch
-
+# FIN
