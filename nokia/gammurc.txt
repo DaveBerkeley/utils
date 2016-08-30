@@ -1,0 +1,16 @@
+[gammu]
+
+port=/dev/rfcomm0
+model=obex
+connection=blueat
+synchronizetime = yes
+logfile = 
+logformat = nothing
+use_locking = 
+gammuloc = 
+name=Nokia301
+[gammu1]
+port=<your_mac_addr_here>
+connection=bluerfphonet
+name=Nokia301
+model=
