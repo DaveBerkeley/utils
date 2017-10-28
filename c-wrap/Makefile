@@ -1,17 +1,18 @@
 
 #
-#	TODO : include cross-compile etc.
-#
 #	TODO : handle cross compile, library generation etc.
 
-# CROSS = arm-none-eabi-
+#STAGING_DIR = $(HOME)/Desktop/git/openwrt/gl-mt300n/openwrt-cc/staging_dir/
+#CROSS = $(STAGING_DIR)/toolchain-mipsel_24kec+dsp_gcc-4.8-linaro_uClibc-0.9.33.2/bin/mipsel-openwrt-linux-uclibc-
+
+#EXPORT = STAGING_DIR=$(STAGING_DIR) 
 
 #
 #
 
 SRC = main.c 
 
-#SRC += c/c.c
+SRC += subdir/other.c
 
 SRC_CC = lock.cpp mutex.cpp test.cpp
 

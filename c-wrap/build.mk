@@ -1,8 +1,8 @@
 #
 #
 
-CC = $(CROSS)gcc
-CXX = $(CROSS)g++
+CC = $(EXPORT) $(CROSS)gcc
+CXX = $(EXPORT) $(CROSS)g++
 CFLAGS += -Wall -Wextra
 CPPFLAGS += 
 
@@ -19,8 +19,6 @@ DEPS += $(SRC_CC:%.cpp=$(OBJDIR_CC)/%.d)
 LFLAGS += $(LIBS:%=-l%)
 CFLAGS += $(DEFINES:%=-D%)
 
-MAKEDEPEND = $(CC) -MM $(CPPFLAGS) -MT $(dir $@)$*.o -o $(dir $@)$*.d $<
-
 #
 
 all: $(APP) $(DEPS)
@@ -33,6 +31,10 @@ test: $(APP)
 
 $(APP): $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LFLAGS)
+
+#
+
+MAKEDEPEND = $(CC) -MM $(CPPFLAGS) -MT $(basename $@).o -o $(basename $@).d $<
 
 #	Build dependencies and compile C files.
 
