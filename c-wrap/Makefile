@@ -3,11 +3,11 @@ SRC = main.c
 
 #SRC += c/c.c
 
-SRC_CC = lock.cpp mutex.cpp
+SRC_CC = lock.cpp mutex.cpp test.cpp
 
 APP = maker
 
-LIBS = pthread
+LIBS = pthread stdc++
 
 #DEFINES = DEBUG
 
@@ -16,7 +16,7 @@ LIBS = pthread
 
 CC = gcc
 CXX = g++
-CFLAGS = -Wall -Wextra
+CFLAGS += -Wall -Wextra
 
 OBJBASE = obj
 OBJDIR = $(OBJBASE)/c
