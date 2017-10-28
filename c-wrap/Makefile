@@ -7,6 +7,8 @@
 
 #EXPORT = STAGING_DIR=$(STAGING_DIR) 
 
+#TARGET = mipsel-openwrt-linux
+
 #
 #
 

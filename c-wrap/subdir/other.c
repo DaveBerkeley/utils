@@ -1,5 +1,6 @@
 
-int test()
+int testx()
 {
     return 0;
 }
+

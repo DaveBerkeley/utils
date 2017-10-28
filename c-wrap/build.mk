@@ -6,7 +6,7 @@ CXX = $(EXPORT) $(CROSS)g++
 CFLAGS += -Wall -Wextra
 CPPFLAGS += 
 
-OBJBASE = obj
+OBJBASE = obj/$(TARGET)
 OBJDIR = $(OBJBASE)/c
 OBJDIR_CC = $(OBJBASE)/cpp
 
