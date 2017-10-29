@@ -18,12 +18,13 @@ SRC_CC += subdir/other.c
 
 SRC_CPP = lock.cpp mutex.cpp test.cpp
 
-APP = maker
-
 LIBS = pthread stdc++
 
 #DEFINES = DEBUG
 
--include build.mk
+APP = maker 
+#LIB = libtest.so
+
+include build.mk
 
 # 	FIN

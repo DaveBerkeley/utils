@@ -3,26 +3,27 @@
 
 CC = $(EXPORT) $(CROSS)gcc
 CXX = $(EXPORT) $(CROSS)g++
-CFLAGS += -Wall -Wextra
+CFLAGS += -Wall -Wextra -fPIC
 CPPFLAGS += 
 
 TARGET ?= native
-OBJBASE = obj/$(TARGET)
-OBJDIR = $(OBJBASE)/c
-OBJDIR_CC = $(OBJBASE)/cpp
+OBJBASE = obj
+OBJDIR = $(OBJBASE)/$(TARGET)
+OBJDIR_CC  = $(OBJDIR)/c
+OBJDIR_CPP = $(OBJDIR)/cpp
 
-OBJS  = $(SRC_CC:%.c=$(OBJDIR)/%.o)
-OBJS += $(SRC_CPP:%.cpp=$(OBJDIR_CC)/%.o)
+OBJS  = $(SRC_CC:%.c=$(OBJDIR_CC)/%.o)
+OBJS += $(SRC_CPP:%.cpp=$(OBJDIR_CPP)/%.o)
 
-DEPS  = $(SRC_CC:%.c=$(OBJDIR)/%.d)
-DEPS += $(SRC_CPP:%.cpp=$(OBJDIR_CC)/%.d)
+DEPS  = $(SRC_CC:%.c=$(OBJDIR_CC)/%.d)
+DEPS += $(SRC_CPP:%.cpp=$(OBJDIR_CPP)/%.d)
 
 LFLAGS += $(LIBS:%=-l%)
 CFLAGS += $(DEFINES:%=-D%)
 
 #
 
-all: $(APP) $(DEPS)
+all: $(APP) $(LIB) $(DEPS)
 
 clean:
 	rm $(APP) -rf $(OBJBASE)
@@ -33,26 +34,29 @@ test: $(APP)
 $(APP): $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LFLAGS)
 
+$(LIB): $(OBJS)
+	$(CC) $(LDFLAGS) -shared -o $@ $^ $(LFLAGS)
+
 #
 
 MAKEDEPEND = $(CC) -MM $(CPPFLAGS) -MT $(basename $@).o -o $(basename $@).d $<
 
 #	Build dependencies and compile C files.
 
-$(OBJDIR)/%.d : %.c
+$(OBJDIR_CC)/%.d : %.c
 	@mkdir -p $(dir $@)
 	$(MAKEDEPEND)
 
-$(OBJDIR)/%.o : %.c $(OBJDIR)/%.d 
+$(OBJDIR_CC)/%.o : %.c $(OBJDIR_CC)/%.d 
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 #	Build dependencies and compile C++ files.
 
-$(OBJDIR_CC)/%.d : %.cpp
+$(OBJDIR_CPP)/%.d : %.cpp
 	@mkdir -p $(dir $@)
 	$(MAKEDEPEND)
 
-$(OBJDIR_CC)/%.o : %.cpp $(OBJDIR_CC)/%.d 
+$(OBJDIR_CPP)/%.o : %.cpp $(OBJDIR_CPP)/%.d 
 	$(CXX) $(CFLAGS) -c -o $@ $<
 
 #	Include auto-built dependencies
