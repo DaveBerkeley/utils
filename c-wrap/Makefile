@@ -12,11 +12,11 @@
 #
 #
 
-SRC = main.c 
+SRC_CC = main.c 
 
-SRC += subdir/other.c
+SRC_CC += subdir/other.c
 
-SRC_CC = lock.cpp mutex.cpp test.cpp
+SRC_CPP = lock.cpp mutex.cpp test.cpp
 
 APP = maker
 

@@ -6,15 +6,16 @@ CXX = $(EXPORT) $(CROSS)g++
 CFLAGS += -Wall -Wextra
 CPPFLAGS += 
 
+TARGET ?= native
 OBJBASE = obj/$(TARGET)
 OBJDIR = $(OBJBASE)/c
 OBJDIR_CC = $(OBJBASE)/cpp
 
-OBJS  = $(SRC:%.c=$(OBJDIR)/%.o)
-OBJS += $(SRC_CC:%.cpp=$(OBJDIR_CC)/%.o)
+OBJS  = $(SRC_CC:%.c=$(OBJDIR)/%.o)
+OBJS += $(SRC_CPP:%.cpp=$(OBJDIR_CC)/%.o)
 
-DEPS  = $(SRC:%.c=$(OBJDIR)/%.d)
-DEPS += $(SRC_CC:%.cpp=$(OBJDIR_CC)/%.d)
+DEPS  = $(SRC_CC:%.c=$(OBJDIR)/%.d)
+DEPS += $(SRC_CPP:%.cpp=$(OBJDIR_CC)/%.d)
 
 LFLAGS += $(LIBS:%=-l%)
 CFLAGS += $(DEFINES:%=-D%)
