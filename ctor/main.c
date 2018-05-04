@@ -37,7 +37,8 @@ static void callback_run(Callbacks *cbs, void *args)
 
     _callback_unlock(cbs);
 }
-static void callback_add(Callbacks *cbs, Callback *cb)
+
+void callback_add(Callbacks *cbs, Callback *cb)
 {
     _callback_lock(cbs);
 
@@ -48,7 +49,7 @@ static void callback_add(Callbacks *cbs, Callback *cb)
     _callback_unlock(cbs);
 }
 
-static void callback_remove(Callbacks *cbs, Callback *cb)
+void callback_remove(Callbacks *cbs, Callback *cb)
 {
     _callback_lock(cbs);
 
@@ -65,16 +66,13 @@ static void callback_remove(Callbacks *cbs, Callback *cb)
     _callback_unlock(cbs);
 }
 
-static void callback_remove_all(Callbacks *cbs)
+void callback_remove_all(Callbacks *cbs)
 {
     while (cbs->callbacks)
     {
         callback_remove(cbs, cbs->callbacks);
     }
 }
-
-#define __STRINGISE(x) #x
-#define STRINGISE(x) __STRINGISE(x)
 
 static void fn(void* arg, void *args)
 {
@@ -84,10 +82,15 @@ static void fn(void* arg, void *args)
     printf("fn(%s) %s\n", cb->name, text);
 }
 
+#define __STRINGISE(x) #x
+#define STRINGISE(x) __STRINGISE(x)
+
+#define CWD STRINGISE(__CWD__)
+
 static Callback cb = {
     .fn = fn,
     .arg = & cb,
-    .name = STRINGISE(__CWD__) "/" __FILE__,
+    .name = CWD "/" __FILE__,
 };
 
 __attribute__((constructor))
