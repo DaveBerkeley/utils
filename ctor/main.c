@@ -3,7 +3,7 @@
 
 typedef struct Callback {
     struct Callback *next;
-    void (*fn)(void*);
+    void (*fn)(void* arg, void* args);
     void *arg;
     const char *name;
 }   Callback;
@@ -25,14 +25,14 @@ static void _callback_unlock(Callbacks *cbs)
     //  TODO
 }
 
-static void callback_run(Callbacks *cbs)
+static void callback_run(Callbacks *cbs, void *args)
 {
     _callback_lock(cbs);
 
     for (Callback *cb = cbs->callbacks; cb; cb = cb->next)
     {
         printf("run %s\n", cb->name);
-        cb->fn(cb->arg);
+        cb->fn(cb->arg, args);
     }
 
     _callback_unlock(cbs);
@@ -76,10 +76,12 @@ static void callback_remove_all(Callbacks *cbs)
 #define __STRINGISE(x) #x
 #define STRINGISE(x) __STRINGISE(x)
 
-static void fn(void* arg)
+static void fn(void* arg, void *args)
 {
     Callback *cb = (Callback*) arg;
-    printf("fn(%s)\n", cb->name);
+    const char* text = (const char*) args;
+
+    printf("fn(%s) %s\n", cb->name, text);
 }
 
 static Callback cb = {
@@ -91,15 +93,15 @@ static Callback cb = {
 __attribute__((constructor))
 static void test()
 {
-    printf("xx %s/%s\n", STRINGISE(__CWD__), __FILE__);
+    printf("start ctor\n");
     callback_add(& cbs, & cb);
 }
 
 int main(int arg, char** argv)
 {
-    printf("yy\n");
+    printf("start main\n");
 
-    callback_run(& cbs);
+    callback_run(& cbs, "test parameter");
     callback_remove_all(& cbs);
     return 0;
 }
