@@ -4,7 +4,7 @@ CFLAGS = -Wall
 HERE := $(shell /bin/pwd)
 
 SRC = main.c 
-#SRC += a/a.c
+SRC += callback.c
 
 APP = ctor
 OBJDIR = obj
