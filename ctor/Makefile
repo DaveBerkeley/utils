@@ -5,6 +5,7 @@ HERE := $(shell /bin/pwd)
 
 SRC = main.c 
 SRC += callback.c
+SRC += log.c
 
 APP = ctor
 OBJDIR = obj

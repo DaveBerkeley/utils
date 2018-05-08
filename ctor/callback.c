@@ -1,5 +1,5 @@
 
-#include <stdio.h>
+#include "log.h"
 
 #include "callback.h"
 
@@ -19,7 +19,7 @@ void callback_run(Callbacks *cbs, void *args)
 
     for (Callback *cb = cbs->callbacks; cb; cb = cb->next)
     {
-        printf("run %s\n", cb->name);
+        XLOG_DEBUG("run %s", cb->name);
         cb->fn(cb->arg, args);
     }
 
@@ -30,7 +30,7 @@ void callback_add(Callbacks *cbs, Callback *cb)
 {
     _callback_lock(cbs);
 
-    printf("add %p %p %s\n", cb->fn, cb->arg, cb->name);
+    XLOG_DEBUG("add %p %p %s", cb->fn, cb->arg, cb->name);
     cb->next = cbs->callbacks;
     cbs->callbacks = cb;
 
