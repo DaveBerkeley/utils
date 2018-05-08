@@ -23,6 +23,8 @@ void __log(LogInfo *log, int level, const char* fmt, ...) __attribute__((format(
 
 void log_register(LogInfo *state, const char *path);
 void log_visit(void (*fn)(const LogInfo *state, void *arg), void *arg);
+void log_set_level(LogInfo *state, int level);
+int log_get_level(LogInfo *state);
 
 #define __STRINGISE(x) #x
 #define STRINGISE(x) __STRINGISE(x)

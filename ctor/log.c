@@ -54,3 +54,12 @@ void log_visit(void (*fn)(const LogInfo *state, void *arg), void *arg)
     }
 }
 
+void log_set_level(LogInfo *state, int level)
+{
+    state->level = level;
+}
+
+int log_get_level(LogInfo *state)
+{
+    return state->level;
+}
