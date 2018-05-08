@@ -2,8 +2,7 @@
 #include "callback.h"
 #include "log.h"
 
-#define __STRINGISE(x) #x
-#define STRINGISE(x) __STRINGISE(x)
+LOGGING;
 
 static void fn(void* arg, void *args)
 {
@@ -19,7 +18,6 @@ static Callback cb = {
     .name = STRINGISE(__CWD__) "/" __FILE__,
 };
 
-
 static Callbacks cbs;
 
 __attribute__((constructor))
@@ -29,12 +27,22 @@ static void test()
     callback_add(& cbs, & cb);
 }
 
+static void see_log(const LogInfo *log, void *arg)
+{
+    XLOG_DEBUG("log %s", log->path);
+}
+
 int main(int arg, char** argv)
 {
     XLOG_DEBUG("start main");
 
     callback_run(& cbs, "test parameter");
     callback_remove_all(& cbs);
+
+    XLOG_DEBUG("");
+
+    log_visit(see_log, 0);
+
     return 0;
 }
 

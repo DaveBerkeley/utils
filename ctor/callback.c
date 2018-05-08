@@ -3,6 +3,8 @@
 
 #include "callback.h"
 
+LOGGING;
+
 static void _callback_lock(Callbacks *cbs)
 {
     //  TODO
