@@ -6,8 +6,6 @@
 
 #include "log.h"
 
-LOGGING;
-
 void __log(LogInfo *info, int level, const char* fmt, ...)
 {
     char buff[32];
@@ -32,18 +30,11 @@ void __log(LogInfo *info, int level, const char* fmt, ...)
 
 static LogInfo *files = 0;
 
-static void add(LogInfo *state, const char *path)
+void log_register(LogInfo *state)
 {
-    state->path = path;
-
+    XLOG_DEBUG("");
     state->next = files;
     files = state;
-}
-
-void log_register(LogInfo *state, const char *path)
-{
-    add(state, path);
-    XLOG_DEBUG("");
 }
 
 void log_visit(void (*fn)(const LogInfo *state, void *arg), void *arg)
@@ -63,3 +54,5 @@ int log_get_level(LogInfo *state)
 {
     return state->level;
 }
+
+//  FIN

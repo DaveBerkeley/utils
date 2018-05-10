@@ -2,8 +2,7 @@
 #include "callback.h"
 #include "log.h"
 
-LOGGING;
-
+#if 0
 static void fn(void* arg, void *args)
 {
     Callback *cb = (Callback*) arg;
@@ -17,15 +16,18 @@ static Callback cb = {
     .arg = & cb,
     .name = STRINGISE(__CWD__) "/" __FILE__,
 };
+#endif
 
 static Callbacks cbs;
 
+#if 0
 __attribute__((constructor))
 static void test()
 {
     XLOG_DEBUG("start ctor");
     callback_add(& cbs, & cb);
 }
+#endif
 
 static void see_log(const LogInfo *log, void *arg)
 {
@@ -37,9 +39,9 @@ int main(int arg, char** argv)
     XLOG_DEBUG("start main");
 
     callback_run(& cbs, "test parameter");
-    callback_remove_all(& cbs);
+    //callback_remove_all(& cbs);
 
-    XLOG_DEBUG("");
+    XLOG_DEBUG("see all log files:");
 
     log_visit(see_log, 0);
 

@@ -3,8 +3,6 @@
 
 #include "callback.h"
 
-LOGGING;
-
 static void _callback_lock(Callbacks *cbs)
 {
     //  TODO
@@ -18,6 +16,8 @@ static void _callback_unlock(Callbacks *cbs)
 void callback_run(Callbacks *cbs, void *args)
 {
     _callback_lock(cbs);
+
+    XLOG_DEBUG("run");
 
     for (Callback *cb = cbs->callbacks; cb; cb = cb->next)
     {
