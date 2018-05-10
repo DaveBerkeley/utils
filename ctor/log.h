@@ -30,7 +30,8 @@ void __log(LogInfo *log, int level, const char* fmt, ...) __attribute__((format(
 #define XLOG_DEBUG(fmt, ...) LOG(LOG_DEBUG, fmt, ## __VA_ARGS__ )
 #define XLOG_ERROR(fmt, ...) LOG(LOG_ERR, fmt, ## __VA_ARGS__ )
 
-void log_register(LogInfo *state);
+void __log_register(LogInfo *state);
+
 void log_visit(void (*fn)(const LogInfo *state, void *arg), void *arg);
 void log_set_level(LogInfo *state, int level);
 int log_get_level(LogInfo *state);
@@ -46,7 +47,7 @@ static LogInfo log_state;
 __attribute__((constructor))
 static void __log_init()
 {
-    log_register(& log_state);
+    __log_register(& log_state);
 }
 
 #endif // __LOG_H__

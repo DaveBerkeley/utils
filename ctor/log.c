@@ -30,7 +30,7 @@ void __log(LogInfo *info, int level, const char* fmt, ...)
 
 static LogInfo *files = 0;
 
-void log_register(LogInfo *state)
+void __log_register(LogInfo *state)
 {
     XLOG_DEBUG("");
     state->next = files;
