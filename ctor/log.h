@@ -4,6 +4,7 @@
 #define __LOG_H__
 
 #include <syslog.h>
+#include <stdbool.h>
 
 #define __STRINGISE(x) #x
 #define STRINGISE(x) __STRINGISE(x)
@@ -16,11 +17,13 @@ typedef struct LogInfo {
 
 void __log(LogInfo *log, int level, const char* fmt, ...) __attribute__((format(printf,3,4)));
 
+#define __log_test(a,b) (true) // TODO
+
 #define LOG(level, fmt, ...) \
-    { \
+    if (__log_test(& log_state, level)) { \
         log_state.path = STRINGISE(__CWD__) "/" __FILE__; \
-        __log(& log_state, level, " %s():%d : " fmt, \
-                __FUNCTION__, __LINE__, ## __VA_ARGS__ ); \
+        __log(& log_state, level, " +%d %s() : " fmt, \
+                __LINE__, __FUNCTION__, ## __VA_ARGS__ ); \
     }
 
 #define XLOG_INFO(fmt, ...) LOG(LOG_WARN, fmt, ## __VA_ARGS__ )
