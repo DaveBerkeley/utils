@@ -1,11 +1,14 @@
+
 CC = gcc
-CFLAGS = -Wall -Werror -g
+CFLAGS += -Wall -Werror -g
 
 HERE := $(shell /bin/pwd)
 
 SRC = main.c 
 SRC += callback.c
 SRC += log.c
+SRC += list.c
+SRC += lock.c
 
 APP = ctor
 OBJDIR = obj

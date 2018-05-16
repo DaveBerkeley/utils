@@ -3,6 +3,8 @@
 
 #define CALLBACK_H
 
+#include "lock.h"
+
 typedef struct Callback {
     struct Callback *next;
     void (*fn)(void* arg, void* args);
@@ -12,8 +14,10 @@ typedef struct Callback {
 
 typedef struct {
     Callback *callbacks;
-    // mutexs ...
+    struct Lock *lock;
 }   Callbacks;
+
+void callback_init(Callbacks *cbs);
 
 void callback_run(Callbacks *cbs, void *args);
 void callback_add(Callbacks *cbs, Callback *cb);

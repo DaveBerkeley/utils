@@ -3,19 +3,19 @@
 
 #include "callback.h"
 
-static void _callback_lock(Callbacks *cbs)
+void callback_init(Callbacks *cbs)
 {
-    //  TODO
-}
-
-static void _callback_unlock(Callbacks *cbs)
-{
-    //  TODO
+    cbs->lock = lock_init();
 }
 
 void callback_run(Callbacks *cbs, void *args)
 {
-    _callback_lock(cbs);
+    if (!cbs->lock)
+    {
+        callback_init(cbs);
+    }
+
+    lock_lock(cbs->lock);
 
     XLOG_DEBUG("run");
 
@@ -25,23 +25,28 @@ void callback_run(Callbacks *cbs, void *args)
         cb->fn(cb->arg, args);
     }
 
-    _callback_unlock(cbs);
+    lock_unlock(cbs->lock);
 }
 
 void callback_add(Callbacks *cbs, Callback *cb)
 {
-    _callback_lock(cbs);
+    if (!cbs->lock)
+    {
+        callback_init(cbs);
+    }
+
+    lock_lock(cbs->lock);
 
     XLOG_DEBUG("add %p %p %s", cb->fn, cb->arg, cb->name);
     cb->next = cbs->callbacks;
     cbs->callbacks = cb;
 
-    _callback_unlock(cbs);
+    lock_unlock(cbs->lock);
 }
 
 void callback_remove(Callbacks *cbs, Callback *cb)
 {
-    _callback_lock(cbs);
+    lock_lock(cbs->lock);
 
     for (Callback **head = & cbs->callbacks; *head; head = &((*head)->next))
     {
@@ -53,7 +58,7 @@ void callback_remove(Callbacks *cbs, Callback *cb)
         }
     }
 
-    _callback_unlock(cbs);
+    lock_unlock(cbs->lock);
 }
 
 void callback_remove_all(Callbacks *cbs)
