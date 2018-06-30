@@ -3,6 +3,7 @@
 import datetime
 import argparse
 import sys
+import os
 import re
 import imp
 import warnings
@@ -215,43 +216,27 @@ def make_filter(text):
         return parser.parse(lexer.lex(text))
 
 #
-#   Syslog
+#
 
-r_prog = re.compile("(\w+)(?:\[(\d+)\])?")
-
-def process(text):
-    # syslog format
-    d = { 'whole' : text, 'type' : 'syslog' }
-    head, tail = text.split(": ", 1)
-    parts = head.split()
-
-    def progpid(word):
-        match = r_prog.match(word)
-        assert match
-        return match.groups()
-
-    if len(parts) == 5:
-        # "Day dd hh:mm:ss host prog[pid]:"
-        month, day = parts[0:2]
-        fmt = "%Y %b %d"
-        year = datetime.datetime.now().year
-        dt = datetime.datetime.strptime(" ".join([str(year), month, day]), fmt)
-
-        ymd = dt.strftime("%Y-%m-%d")
-        hms = parts[2]
-
-        d['dt'] = ymd + "T" + hms
-        d['ymd'] = ymd
-        d['hms'] = hms
-        d['host'] = parts[3]
-        prog, pid = progpid(parts[4])
-        d['prog'] = prog
-        d['pid'] = pid
-        d['msg' ] = tail
-    else:
-        raise Exception(("Todo",text))
-
-    return d
+def get_import(path):
+    log("Importing module", path)
+    dirname, fname = os.path.split(path)
+    if (not dirname) and not os.path.exists(path):
+        # need to find out where lex.py is
+        lex_path = os.path.realpath(__file__)
+        dirname, _ = os.path.split(lex_path)
+        path = os.path.join(dirname, fname)
+    name = "mod_%s" % fname.replace('.', '_')
+    try:
+        module = imp.load_source(name, path)
+    except IOError:
+        log("Error importing '%s'" % path)
+        raise
+    try:
+        return module.process
+    except AttributeError:
+        log("External Modules require a functions name 'process'")
+        raise
 
 #
 #
@@ -293,26 +278,18 @@ def main():
 
     fmt = args.fmt
 
-    handlers = [ process ]
+    handlers = []
 
     if args.apache:
         args.module.append("apache.py")
 
-    if args.module:
-        handlers = []
     for i, path in enumerate(args.module):
-        log("Importing module", path)
-        try:
-            name = "mod_%i" % i
-            module = imp.load_source(name, path)
-        except IOError:
-            log("Error importing '%s'" % path)
-            raise
-        try:
-            handlers.insert(0, module.process)
-        except AttributeError:
-            log("External Modules require a functions name 'process'")
-            raise
+        fn = get_import(path)
+        handlers.insert(0, fn)
+
+    # default handler is syslog.py
+    if not handlers:
+        handlers = [ get_import('syslog.py') ]
 
     if args.error:
         def catchall(line):
