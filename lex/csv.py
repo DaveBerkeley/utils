@@ -3,11 +3,9 @@ import imp
 import sys
 
 # don't search in the current directory
-x = imp.find_module('csv', sys.path[1:])
-
-raise Exception(x)
-
-import csv
+f, path, desc = imp.find_module('csv', sys.path[1:])
+# load the system file csv, not this local one
+csv = imp.load_module('csv', f, path, desc)
 
 #
 #
