@@ -1,5 +1,16 @@
 
+import imp
+import sys
+
+# don't search in the current directory
+x = imp.find_module('csv', sys.path[1:])
+
+raise Exception(x)
+
 import csv
+
+#
+#
 
 class Line:
 
@@ -18,6 +29,9 @@ class Line:
         return self
     def next(self):
         return self.__next__()
+
+#
+#
 
 class Reader:
 
@@ -46,21 +60,10 @@ class Reader:
         d['whole'] = line
         return d
 
+#
+#
+
 r = Reader()
-
 process = r.process
-
-def xprocess(line):
-
-    global reader, io, fields
-
-    if reader is None:
-        io = StringIO()
-        io.write(line + '\n')
-        reader = csv.DictReader(io)
-        return None
-
-    io.write(line + '\n')
-    return reader.next()
 
 # FIN
