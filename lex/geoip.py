@@ -10,7 +10,9 @@ def process(line):
     p = parts[1].split(' ')
     if len(p) != 3:
         return None
-    rev, _, country = p
+    rev, v, country = p
+    assert rev == 'Rev'
+    assert v == '1:'
 
     assert len(parts) == 10
     d = {
