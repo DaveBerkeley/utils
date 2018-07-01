@@ -249,7 +249,6 @@ def main():
     p.add_argument('-M', "--module", dest='module', help="module", action="append", default=[])
     p.add_argument('-S', "--show", dest='show', help="show logic", action="store_true")
     p.add_argument('-F', "--show-fields", dest='show_fields', help="show fields", action="store_true")
-    p.add_argument('-A', "--apache", dest='apache', help="apache", action="store_true")
     p.add_argument('-X', "--exit", dest='exit', help="exit", action="store_true")
     p.add_argument('-E', "--error", dest='error', help="error", action="store_true")
     p.add_argument('-o', "--or", dest='logic_or', help="OR terms together, not AND", action="store_true")
@@ -280,35 +279,27 @@ def main():
 
     handlers = []
 
-    if args.apache:
-        args.module.append("apache.py")
+    # default to using syslog
+    if (not args.module) and not handlers:
+        args.module.append("syslog.py")
 
     module_args = {}
 
     for i, module in enumerate(args.module):
-        d = None
-        if not ':' in module:
-            path = module
-        else:
-            parts = module.split(':', 1)
-            path = parts[0]
-            d = {}
-            for part in parts[1:]:
-                n, v = part.split('=')
-                d[n] = v
+        parts = module.split(':')
+        path = parts[0]
+        d = {}
+        for part in parts[1:]:
+            n, v = part.split('=')
+            d[n] = v
         name, fn = get_import(path)
-        if d:
-            module_args[name] = d
+        module_args[name] = d
         handlers.insert(0, (name, fn))
-
-    # default handler is syslog.py
-    if not handlers:
-        handlers = [ ('syslog', get_import('syslog.py')) ]
 
     if args.error:
         def catchall(line):
             raise Exception(line)    
-        handlers.append(('catchall',catchall))
+        handlers.append(('catchall.py',catchall))
 
     # process the input file line by line
     for line in sys.stdin:
