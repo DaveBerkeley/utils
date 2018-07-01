@@ -233,7 +233,7 @@ def get_import(path):
         log("Error importing '%s'" % path)
         raise
     try:
-        return module.process
+        return fname, module.process
     except AttributeError:
         log("External Modules require a functions name 'process'")
         raise
@@ -283,24 +283,39 @@ def main():
     if args.apache:
         args.module.append("apache.py")
 
-    for i, path in enumerate(args.module):
-        fn = get_import(path)
-        handlers.insert(0, fn)
+    module_args = {}
+
+    for i, module in enumerate(args.module):
+        d = None
+        if not ':' in module:
+            path = module
+        else:
+            parts = module.split(':', 1)
+            path = parts[0]
+            d = {}
+            for part in parts[1:]:
+                n, v = part.split('=')
+                d[n] = v
+        name, fn = get_import(path)
+        if d:
+            module_args[name] = d
+        handlers.insert(0, (name, fn))
 
     # default handler is syslog.py
     if not handlers:
-        handlers = [ get_import('syslog.py') ]
+        handlers = [ ('syslog', get_import('syslog.py')) ]
 
     if args.error:
         def catchall(line):
             raise Exception(line)    
-        handlers.append(catchall)
+        handlers.append(('catchall',catchall))
 
     # process the input file line by line
     for line in sys.stdin:
         line = line.strip()
-        for handler in handlers:
-            d = handler(line)
+        for name, handler in handlers:
+            m_args = module_args.get(name)
+            d = handler(line, **m_args)
             if d:
                 break;
         if not d:

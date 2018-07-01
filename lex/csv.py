@@ -42,12 +42,13 @@ class Reader:
         for row in self.reader:
             return row
 
-    def process(self, line):
+    def process(self, line, **kwargs):
 
         self.io.write(line + '\n')
 
         if self.reader is None:
-            self.reader = csv.reader(self.io, delimiter=',')
+            delimiter = kwargs.get('delimiter')
+            self.reader = csv.reader(self.io, delimiter=delimiter)
 
             data = self.next()
             self.fields = data
