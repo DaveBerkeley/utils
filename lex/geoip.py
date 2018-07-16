@@ -14,17 +14,17 @@ def process(line):
     assert rev == 'Rev'
     assert v == '1:'
 
-    assert len(parts) == 10
+    #assert len(parts) == 10, (parts, len(parts))
     d = {
         'whole' : line,
         'country' : country,
-        'lat' : parts[6],
-        'lon' : parts[7],
+        'lat' : parts[-4],
+        'lon' : parts[-3],
         'code' : parts[2],
         'addr' : ", ".join(parts[3:6]),
         # not sure what these are, US only?
-        'x' : parts[8],
-        'y' : parts[9],
+        'x' : parts[-2],
+        'y' : parts[-1],
     }
     return d
 
