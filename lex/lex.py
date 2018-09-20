@@ -279,6 +279,43 @@ def get_import(path):
 #
 #
 
+COL = [ 41, 42, 43, 44, 45, 46, ]
+
+class Select:
+    def __init__(self):
+        self.idx = 0
+        self.data = {}
+    def get(self, name):
+        c = self.data.get(name)
+        if c is None:
+            c = COL[self.idx]
+            self.idx = (self.idx + 1) % len(COL)
+            self.data[name] = c
+        return c
+
+class Colour:
+
+    s = {}
+
+    def __init__(self, d, colours):
+        self.data = d
+        self.colours = colours
+    def __getitem__(self, field):
+        text = self.data.get(field)
+        if not text:
+            return None
+        if not field in self.colours:
+            return text
+        s = self.s.get(field)
+        if not s: 
+            s = Select()
+            self.s[field] = s
+        c = s.get(text)
+        return '\033[%dm%s\033[0m' % (c, text)
+
+#
+#
+
 def main():
     p = argparse.ArgumentParser(description='log file filtering')
     p.add_argument('-f', "--fmt", dest='fmt', help="output format", default="%(whole)s")
@@ -290,6 +327,7 @@ def main():
     p.add_argument('-X', "--exit", dest='exit', help="exit", action="store_true")
     p.add_argument('-E', "--error", dest='error', help="error", action="store_true")
     p.add_argument('-o', "--or", dest='logic_or', help="OR terms together, not AND", action="store_true")
+    p.add_argument('-C', "--colour", dest='colour', help="coloured fields (seperated by ',')")
 
     args = p.parse_args()
 
@@ -339,6 +377,11 @@ def main():
             raise Exception(line)    
         handlers.append(('catchall.py',catchall))
 
+    colours = {}
+    if args.colour:
+        for field in args.colour.split(','):
+            colours[field] = {}
+
     # process the input file line by line
     for line in sys.stdin:
         line = line.strip()
@@ -355,8 +398,9 @@ def main():
             return
 
         if filt.match(d):
+            f = d.get('fmt', fmt)
             try:
-                print fmt % d
+                print f % Colour(d, colours)
             except KeyError:
                 print `d`
                 raise

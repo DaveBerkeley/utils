@@ -35,6 +35,10 @@ def process(text):
         d['prog'] = prog
         d['pid'] = pid
         d['msg' ] = tail
+        if pid:
+            d['fmt'] = "%(dt)s %(host)s %(prog)s[%(pid)s]: %(msg)s"
+        else:
+            d['fmt'] = "%(dt)s %(host)s %(prog)s: %(msg)s"
     else:
         raise Exception(("Todo",text))
 
