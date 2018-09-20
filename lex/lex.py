@@ -113,6 +113,30 @@ class Var(Base):
 #
 #
 
+class Compare(Base):
+
+    def __init__(self, **kwargs):
+        Base.__init__(self, **kwargs)
+        self.field = kwargs['field']
+        self.text = kwargs['text']
+
+    def match(self, d):
+        text = d.get(self.field)
+        if text is None:
+            return False
+        return self.compare(text, self.text)
+
+class LT(Compare):
+    def compare(self, text, s):
+        return text < s
+
+class GT(Compare):
+    def compare(self, text, s):
+        return text > s
+
+#
+#
+
 class Action:
 
     def __init__(self, filt, fn):
@@ -148,10 +172,12 @@ lg.add('L', r'\(')
 lg.add('R', r'\)')
 lg.add('VAR', r'\w+')
 lg.add('STR', r'\'[^\']+\'')
+lg.add('LT', r'<')
+lg.add('GT', r'>')
 
 lg.ignore('\s+')
 
-tokens = [ 'AND', 'OR', 'TRUE', 'NOT', 'EQUALS', 'HAS', 'ASSIGN', 'COMMA', 'VAR', 'STR', 'L', 'R', ] 
+tokens = [ 'AND', 'OR', 'TRUE', 'NOT', 'EQUALS', 'HAS', 'ASSIGN', 'COMMA', 'VAR', 'STR', 'L', 'R', 'LT', 'GT', ] 
 pg = rply.ParserGenerator(tokens)
 
 @pg.production('expression : expression AND expression')
@@ -204,6 +230,18 @@ def expression_has(p):
     var = p[0].getstr()
     regex = xstrip(p[2])
     return Var(name=var,field='msg',regex=regex)
+
+@pg.production('expression : VAR LT STR')
+def expression_lt(p):
+    field = p[0].getstr()
+    text = xstrip(p[2])
+    return LT(field=field, text=text)
+
+@pg.production('expression : VAR GT STR')
+def expression_gt(p):
+    field = p[0].getstr()
+    text = xstrip(p[2])
+    return GT(field=field, text=text)
 
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
