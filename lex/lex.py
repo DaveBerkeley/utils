@@ -134,6 +134,14 @@ class GT(Compare):
     def compare(self, text, s):
         return text > s
 
+class LE(Compare):
+    def compare(self, text, s):
+        return text <= s
+
+class GE(Compare):
+    def compare(self, text, s):
+        return text >= s
+
 #
 #
 
@@ -172,12 +180,17 @@ lg.add('L', r'\(')
 lg.add('R', r'\)')
 lg.add('VAR', r'\w+')
 lg.add('STR', r'\'[^\']+\'')
+lg.add('LE', r'<=')
+lg.add('GE', r'>=')
 lg.add('LT', r'<')
 lg.add('GT', r'>')
 
 lg.ignore('\s+')
 
-tokens = [ 'AND', 'OR', 'TRUE', 'NOT', 'EQUALS', 'HAS', 'ASSIGN', 'COMMA', 'VAR', 'STR', 'L', 'R', 'LT', 'GT', ] 
+tokens = [ 
+    'AND', 'OR', 'TRUE', 'NOT', 'EQUALS', 'HAS', 'ASSIGN', 
+    'COMMA', 'VAR', 'STR', 'L', 'R', 'LE', 'GE', 'LT', 'GT', 
+] 
 pg = rply.ParserGenerator(tokens)
 
 @pg.production('expression : expression AND expression')
@@ -237,11 +250,23 @@ def expression_lt(p):
     text = xstrip(p[2])
     return LT(field=field, text=text)
 
+@pg.production('expression : VAR LE STR')
+def expression_le(p):
+    field = p[0].getstr()
+    text = xstrip(p[2])
+    return LE(field=field, text=text)
+
 @pg.production('expression : VAR GT STR')
 def expression_gt(p):
     field = p[0].getstr()
     text = xstrip(p[2])
     return GT(field=field, text=text)
+
+@pg.production('expression : VAR GE STR')
+def expression_ge(p):
+    field = p[0].getstr()
+    text = xstrip(p[2])
+    return GE(field=field, text=text)
 
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
