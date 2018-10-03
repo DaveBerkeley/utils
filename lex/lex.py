@@ -423,7 +423,8 @@ def main():
             return
 
         if filt.match(d):
-            f = d.get('fmt', fmt)
+            #f = d.get('fmt', fmt)
+            f = fmt
             try:
                 print f % Colour(d, colours)
             except KeyError:
