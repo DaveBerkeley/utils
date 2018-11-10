@@ -23,7 +23,9 @@ re_hms = "(\d\d):(\d\d):(\d\d)"
 re_m = "^([A-Z][a-z][a-z])$"
 re_d = "^(\d+)$"
 re_ymd = "(\d\d\d\d)[/-](\d\d)[/-](\d\d)"
-re_z = "[+-]\d\d:\d\d"
+re_z = "([+-]\d\d:\d\d)"
+re_us = "\.(\d\d\d\d\d\d)"
+re_ms = "\.(\d\d\d)"
 
 res = [
     [   re_hms, "hms", ],
@@ -31,6 +33,8 @@ res = [
     [   re_m, "Mon", ],
     [   re_d, "dd", ],
     [   re_z, "zone", ],
+    [   re_us, "us", ],
+    [   re_ms, "ms", ],
 ]
 
 if __name__ == "__main__":
@@ -52,18 +56,14 @@ if __name__ == "__main__":
                 r = re.compile("^" + regex + "$")
                 match = r.match(part)
                 if match:
-                    print "whole", i, part, x
+                    print "whole ", i, part, x
                     continue
                 if regex[0] == "^":
                     continue
                 r = re.compile(regex)
-                match = r.match(part)
-                if match:
-                    print "part ", i, part, x
-                    continue
                 match = r.search(part)
                 if match:
-                    print "search", i, part, x
+                    print "offset", i, match.span(), part, x
 
 
 # FIN
