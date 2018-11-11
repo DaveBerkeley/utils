@@ -4,43 +4,42 @@
 import re
 import datetime
 
-r_prog = re.compile("(\w+)(?:\[(\d+)\])?")
+import dt
+
+r_prog = re.compile("([\w/]+)(?:\[(\d+)\])?")
+
+parser = dt.Parser()
 
 def process(text):
     # syslog format
-    d = { 'whole' : text, 'type' : 'syslog' }
+
+    d, i = parser.parse(text)
+
+    d['type'] = 'syslog'
+
     head, tail = text.split(": ", 1)
     parts = head.split()
+    parts = parts[i:]
+
+    d['whole'] = d['dt'] + " " + " ".join(parts) + ": " + tail
 
     def progpid(word):
         match = r_prog.match(word)
         assert match
         return match.groups()
 
-    if len(parts) == 5:
-        # "Day dd hh:mm:ss host prog[pid]:"
-        month, day = parts[0:2]
-        fmt = "%Y %b %d"
-        year = datetime.datetime.now().year
-        dt = datetime.datetime.strptime(" ".join([str(year), month, day]), fmt)
+    d['host'] = parts[0]
 
-        ymd = dt.strftime("%Y-%m-%d")
-        hms = parts[2]
+    prog, pid = progpid(parts[1])
+    d['prog'] = prog
+    d['pid'] = pid
 
-        d['dt'] = ymd + "T" + hms
-        d['ymd'] = ymd
-        d['hms'] = hms
-        d['host'] = parts[3]
-        prog, pid = progpid(parts[4])
-        d['prog'] = prog
-        d['pid'] = pid
-        d['msg' ] = tail
-        if pid:
-            d['fmt'] = "%(dt)s %(host)s %(prog)s[%(pid)s]: %(msg)s"
-        else:
-            d['fmt'] = "%(dt)s %(host)s %(prog)s: %(msg)s"
+    d['msg' ] = tail
+
+    if pid:
+        d['fmt'] += " %(host)s %(prog)s[%(pid)s]: %(msg)s"
     else:
-        raise Exception(("Todo",text))
+        d['fmt'] += " %(host)s %(prog)s: %(msg)s"
 
     return d
 
