@@ -6,24 +6,32 @@ import datetime
 #
 #
 
+def validate_month(match=None, word=None):
+    if word is None:
+        if match is None:
+            return None
+        word = match.groups()[0]
+    dt = datetime.datetime.strptime(word, "%b")
+    return "%02d" % dt.month
+
 re_hms = "(\d\d):(\d\d):(\d\d)"
-re_m = "^([A-Z][a-z][a-z])$"
-re_d = "^(\d+)$"
-re_y = "^(\d\d\d\d)$"
+re_m   = "^([A-Z][a-z][a-z])$"
+re_d   = "^(\d+)$"
+re_y   = "^(\d\d\d\d)$"
 re_ymd = "(\d\d\d\d)[/-](\d\d)[/-](\d\d)"
-re_z = "([+-]\d\d:\d\d)"
-re_us = "\.(\d\d\d\d\d\d)"
-re_ms = "\.(\d\d\d)"
+re_z   = "([+-]\d\d:\d\d)"
+re_us  = "\.(\d\d\d\d\d\d)"
+re_ms  = "\.(\d\d\d)"
 
 res = {
-    "hms"   : [ re_hms, ],
-    "YMD"   : [ re_ymd, ],
-    "M" : [ re_m, ],
-    "D"   : [ re_d, ],
-    "Y"  : [ re_y, ],
-    "zone"  : [ re_z, ],
-    "us"    : [ re_us, ],
-    "ms"    : [ re_ms, ],
+    "hms"   : [ re_hms, None, ],
+    "YMD"   : [ re_ymd, None, ],
+    "M"     : [ re_m, validate_month, ],
+    "D"     : [ re_d, None, ],
+    "Y"     : [ re_y, None, ],
+    "zone"  : [ re_z, None, ],
+    "us"    : [ re_us, None, ],
+    "ms"    : [ re_ms, None, ],
 }
 
 priority = [ 
@@ -36,26 +44,29 @@ priority = [
 
 def analyze(parts):
     found = {}
+    def matched(match):
+        return match
     for i, part in enumerate(parts):
         seen = False
-        for section, (regex, ) in res.items():
+        for section, (regex, validate) in res.items():
+            validate_fn = validate or matched
             # check for whole match
             r = re.compile("^" + regex + "$")
             match = r.match(part)
-            if match:
+            if not validate_fn(match) is None:
                 seen = True
-                found[section] = i, section, match.span(), len(match.groups())
+                found[section] = i, section, match.span(), len(match.groups()), validate
                 continue
             if regex[0] == "^":
                 continue
             # check for part match
             r = re.compile(regex)
             match = r.search(part)
-            if match:
+            if not validate_fn(match) is None:
                 seen = True
-                found[section] = i, section, match.span(), len(match.groups())
+                found[section] = i, section, match.span(), len(match.groups()), validate
         if not seen:
-            # must find date/time value in first parts of the line
+            # must find date/time values in first parts of the line
             break
 
     # remove duplicated (worse) matches
@@ -74,14 +85,16 @@ class Field:
 
     def __init__(self):
         self.fns = {}
+        self.validate = {}
         self.offset = 0
         self.match = None
 
     def set_regex(self, regex):
         self.regex = re.compile(regex)
 
-    def add(self, key):
+    def add(self, key, validate):
         self.fns[key] = self.offset
+        self.validate[key] = validate
         self.offset += 1
 
     def parse(self, text):
@@ -92,9 +105,12 @@ class Field:
         idx = self.fns.get(key)
         if idx is None:
             return None
+        valid = self.validate.get(key)
         def fn():
             v = self._match.groups()[idx]
             #print "call", key, v, idx, self._match.groups()
+            if valid:
+                v = valid(word=v)
             return v
         return fn
 
@@ -123,7 +139,7 @@ class Decode:
         def Y():
             # assume this year, in absense of any other info
             now = datetime.datetime.now()
-            return now.year
+            return "%04d" % now.year
         handlers['Y'] = Y
 
         must_have = "YMDhms"
@@ -142,14 +158,14 @@ class Decode:
         fn_M = handlers['M']
         fn_D = handlers['D']
         def ymd():
-            return fn_Y(), fn_M(), fn_D()
+            return fn_Y() + "/" + fn_M() + "/" + fn_D()
         fns['ymd'] = ymd
 
         fn_h = handlers['h']
         fn_m = handlers['m']
         fn_s = handlers['s']
         def hms():
-            return fn_h(), fn_m(), fn_s()
+            return fn_h() + ":" + fn_m() + ":" + fn_s()
         fns['hms'] = hms
 
         # add may haves
@@ -158,6 +174,10 @@ class Decode:
             fn = self.find_fn(key)
             if fn:
                 fns[key] = fn
+
+        # TODO : add "dt" parser
+        # TODO : convert Jan month to 01
+        # TODO : turn ms into us ?
 
         self.handlers = fns
 
@@ -181,7 +201,7 @@ def make_regex(col):
     field = Field()
     regex = ""
     size = 0
-    for start, end, section, num in col:
+    for start, end, section, num, validate in col:
         #print size, start, end, section, num
         next_regex = res[section][0]
         # force "^" match if start of field
@@ -200,10 +220,10 @@ def make_regex(col):
         if section in [ "YMD", "hms" ]:
             assert num == 3
             for c in section:
-                field.add(c)
+                field.add(c, validate)
         else:
             assert num == 1
-            field.add(section)
+            field.add(section, validate)
 
     field.set_regex(regex)
     return field
@@ -215,10 +235,10 @@ def construct(found):
     # build a class that returns ymd, hms, dt, fmt and offset to remainder
     max_idx = -1
     cols = {}
-    for idx, section, (start, end), num in found.values():
+    for idx, section, (start, end), num, validate in found.values():
         #print idx, section, start, end, num
         col = cols.get(idx, [])
-        col.append((start, end, section, num))
+        col.append((start, end, section, num, validate))
         col.sort()
         cols[idx] = col
         if idx > max_idx:
@@ -237,10 +257,10 @@ def construct(found):
 if __name__ == "__main__":
 
     tests = [
-        "Nov 10 07:33:31 anything",
         "2018/11/10 00:08:34.123456 klatu postfix",
         "2018-10-18 07:32:47.266078 abcdef asdert:",
         "2018-05-23T10:08:09.202422+00:00 host prog:",
+        "Nov 10 07:33:31 anything",
     ]
 
     for line in tests:
