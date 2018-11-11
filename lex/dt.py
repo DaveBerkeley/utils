@@ -11,8 +11,14 @@ def validate_month(match=None, word=None):
         if match is None:
             return None
         word = match.groups()[0]
-    dt = datetime.datetime.strptime(word, "%b")
-    return "%02d" % dt.month
+    try:
+        dt = datetime.datetime.strptime(word, "%b")
+        return "%02d" % dt.month
+    except ValueError:
+        return None
+
+#
+#
 
 re_hms = "(\d\d):(\d\d):(\d\d)"
 re_m   = "^([A-Z][a-z][a-z])$"
@@ -20,8 +26,8 @@ re_d   = "^(\d+)$"
 re_y   = "^(\d\d\d\d)$"
 re_ymd = "(\d\d\d\d)[/-](\d\d)[/-](\d\d)"
 re_z   = "([+-]\d\d:\d\d)"
-re_us  = "\.(\d\d\d\d\d\d)"
-re_ms  = "\.(\d\d\d)"
+re_us  = "(\.\d\d\d\d\d\d)"
+re_ms  = "(\.\d\d\d)"
 
 res = {
     "hms"   : [ re_hms, None, ],
@@ -34,13 +40,19 @@ res = {
     "ms"    : [ re_ms, None, ],
 }
 
-priority = [ 
+#
+#
+
+prefer = [ 
     [ "YMD", "M", ],
     [ "YMD", "D", ],
     [ "hms", ],
     [ "us", "ms", ],
     [ "zone", ],
 ]
+
+#
+#
 
 def analyze(parts):
     found = {}
@@ -71,7 +83,7 @@ def analyze(parts):
 
     # remove duplicated (worse) matches
     best = {}
-    for priorities in priority:
+    for priorities in prefer:
         for p in priorities:
             if p in found:
                 best[p] = found[p]
@@ -169,15 +181,23 @@ class Decode:
         fns['hms'] = hms
 
         # add may haves
+        fraction = None
         may_haves = [ "zone", "ms", "us" ]
         for key in may_haves:
             fn = self.find_fn(key)
-            if fn:
-                fns[key] = fn
+            if not fn:
+                continue
+            fns[key] = fn
+            if key in [ "ms", "us" ]:
+                fraction = fn
 
-        # TODO : add "dt" parser
-        # TODO : convert Jan month to 01
-        # TODO : turn ms into us ?
+        # standard "dt" generation
+        def _dt():
+            text = "%s %s" % (ymd(), hms())
+            if fraction:
+                text += fraction()
+            return text
+        fns['dt'] = _dt
 
         self.handlers = fns
 
@@ -190,7 +210,11 @@ class Decode:
             field.parse(part)
 
         for key, fn in self.handlers.items():
-            print key, fn()
+            d[key] = fn()
+
+        # this is all the format we can generate at this stage
+        d['fmt'] = "%(dt)s"
+
         return d, i
 
 #
@@ -254,23 +278,53 @@ def construct(found):
 #
 #
 
+class Parser:
+
+    def __init__(self):
+        self.decode = None
+
+    def parse(self, line):
+        parts = line.split()
+
+        if not self.decode:        
+            found = analyze(parts)
+            self.decode = construct(found)
+            self.decode.resolve()
+
+        d, i = self.decode.parse(parts)
+        return d, i
+
+#
+#
+
 if __name__ == "__main__":
+
+    import sys
+
+    if len(sys.argv) == 1:
+        parser = Parser()
+        for line in sys.stdin:
+            line = line.strip()
+            d, i = parser.parse(line)
+            rest = line.split()[i:]
+            print d['fmt'] % d, " ".join(rest)
+        sys.exit(0)
 
     tests = [
         "2018/11/10 00:08:34.123456 klatu postfix",
         "2018-10-18 07:32:47.266078 abcdef asdert:",
+        "2018-10-18 07:32:47.266 abcdef asdert:",
+        "2018-10-18 07:32:47 abcdef asdert:",
         "2018-05-23T10:08:09.202422+00:00 host prog:",
         "Nov 10 07:33:31 anything",
     ]
 
     for line in tests:
-        parts = line.split()
         print "*" * 20
-        print parts
-        found = analyze(parts)
-        decode = construct(found)
-        decode.resolve()
+        print repr(line)
 
-        decode.parse(parts)
+        parser = Parser()
+        d, i = parser.parse(line)
+        print d, i
 
 # FIN
