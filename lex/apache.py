@@ -74,7 +74,7 @@ def process(line):
         'ip' : ip,
         'ymd' : ymd,
         'hms' : hms,
-        'dt' : ymd + "T" + hms,
+        'dt' : ymd + " " + hms,
         'cmd' : cmd,
         'path' : parts[7], # eg '/static/style.css'
         'err' : parts[9],

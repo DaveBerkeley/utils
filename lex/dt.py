@@ -227,6 +227,8 @@ def make_regex(col):
     size = 0
     for start, end, section, num, validate in col:
         #print size, start, end, section, num
+        if size > start:
+            continue # shouldn't get (or process) overlapping matches
         next_regex = res[section][0]
         # force "^" match if start of field
         if (start == 0) and (next_regex[0] != "^"):
@@ -234,8 +236,6 @@ def make_regex(col):
         # pad with "." if there is a hole in the match
         if size < start:
             regex += "." * (start - size)
-        if size > start:
-            raise Exception("xx")
         # concat the regex
         regex += next_regex
         size = end
