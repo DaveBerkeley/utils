@@ -3,6 +3,11 @@
 import re
 import datetime
 
+def log(*args):
+    for arg in args:
+        print arg,
+    print
+
 #
 #
 
@@ -61,6 +66,9 @@ def analyze(parts):
     for i, part in enumerate(parts):
         seen = False
         for section, (regex, validate) in res.items():
+            # always use the first match
+            if section in found:
+                continue
             validate_fn = validate or matched
             # check for whole match
             r = re.compile("^" + regex + "$")
@@ -110,13 +118,14 @@ class Field:
         self.offset += 1
 
     def parse(self, text):
-        #print "parse", text
+        #log("parse", text)
         self._match = self.regex.search(text)
 
-    def make_fn(self, key):
+    def make_fn(self, key, column):
         idx = self.fns.get(key)
         if idx is None:
             return None
+        #log("make_fn", key, idx, column)
         valid = self.validate.get(key)
         def fn():
             v = self._match.groups()[idx]
@@ -124,6 +133,7 @@ class Field:
             if valid:
                 v = valid(word=v)
             return v
+        fn.column = column
         return fn
 
 #
@@ -139,7 +149,7 @@ class Decode:
 
     def find_fn(self, key):
         for idx, field in self.fields.items():
-            fn = field.make_fn(key)
+            fn = field.make_fn(key, idx)
             if fn:
                 return fn
         return None
@@ -187,6 +197,9 @@ class Decode:
             fn = self.find_fn(key)
             if not fn:
                 continue
+            # fraction _must_ be in the same column as 's'
+            if fn.column != fn_s.column:
+                continue
             fns[key] = fn
             if key in [ "ms", "us" ]:
                 fraction = fn
@@ -200,6 +213,7 @@ class Decode:
         fns['dt'] = _dt
 
         self.handlers = fns
+        #log("handlers", fns)
 
     def parse(self, parts):
         d = {}
@@ -310,21 +324,26 @@ if __name__ == "__main__":
             print d['fmt'] % d, " ".join(rest)
         sys.exit(0)
 
+    must_have = [ "ymd", "hms", "dt", "fmt" ]
     tests = [
-        "2018/11/10 00:08:34.123456 klatu postfix",
-        "2018-10-18 07:32:47.266078 abcdef asdert:",
-        "2018-10-18 07:32:47.266 abcdef asdert:",
-        "2018-10-18 07:32:47 abcdef asdert:",
-        "2018-05-23T10:08:09.202422+00:00 host prog:",
-        "Nov 10 07:33:31 anything",
+        [ "2018/11/10 00:08:34.123456 klatu postfix", [ "us" ], ],
+        [ "2018-10-18 07:32:47.266078 abcdef asdert:", [ "us" ], ],
+        [ "2018-10-18 07:32:47.266 abcdef asdert:", [ "ms" ], ],
+        [ "2018-10-18 07:32:47 abcdef asdert:", [], ],
+        [ "2018-05-23T10:08:09.202422+00:00 host prog:", [ "us" ], ],
+        [ "Nov 10 07:33:31 anything", [ ], ],
+        [ "2018/08/12 06:33:04.224 37.49.224.116", [ "ms" ], ],
     ]
 
-    for line in tests:
+    for line, fields in tests:
         print "*" * 20
         print repr(line)
 
         parser = Parser()
         d, i = parser.parse(line)
         print d, i
+
+        for key in must_have + fields:
+            assert d.get(key), key
 
 # FIN
