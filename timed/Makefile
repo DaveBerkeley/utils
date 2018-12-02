@@ -1,6 +1,7 @@
 
 CC = gcc
 CFLAGS = -Wall -Wextra
+LDFLAGS = -pthread
 
 SRC = timed.c 
 
