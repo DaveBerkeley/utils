@@ -4,18 +4,21 @@
 #include <assert.h>
 #include <string.h>
 
+#include "mutex.h"
+#include "list.h"
 #include "timed.h"
 
     /*
      *
      */
 
-struct Semaphore;
-
 typedef struct Waiter
 {
     //  Wait for timeout or post
     sem_t sem;
+
+    //  The owning Semaphore
+    Semaphore *semaphore;
 
     //  Used by Semaphore to list waiters
     struct Waiter *next_wait;
@@ -25,6 +28,7 @@ typedef struct Waiter
 
     //  Expiry time
     struct timespec expire;
+    bool timed;
 
     //  Return code
     int code;
@@ -34,94 +38,10 @@ typedef struct Waiter
      *
      */
 
-enum WaitType {
-    WAIT_BLOCK = 1,
-    WAIT_TIMED,
-};
-
-static inline struct Waiter **pnext(Waiter *w, enum WaitType wait)
+static int cmp_time(const void *a1, const void *a2)
 {
-    switch (wait)
-    {
-        case WAIT_BLOCK : return & w->next_wait;
-        case WAIT_TIMED : return & w->next_timed;
-        default : ASSERT(0);
-    }
-}
-
-static void _waiter_insert(Waiter **head, Waiter *w, Waiter **next)
-{
-    *next = *head;
-    *head = w;
-}
-
-void waiter_insert(Waiter **head, Waiter *w, enum WaitType wait, Mutex *mutex)
-{
-    lock(mutex);
-
-    _waiter_insert(head, w, pnext(w, wait));
-
-    unlock(mutex);
-}
-
-void waiter_append(Waiter **head, Waiter *w, enum WaitType wait, Mutex *mutex)
-{
-    lock(mutex);
-
-    while (*head)
-    {
-        head = pnext(*head, wait);
-    }
-
-    _waiter_insert(head, w, pnext(w, wait));
-
-    unlock(mutex);
-}
-
-typedef int (*cmp_fn)(const Waiter *, const Waiter *);
-
-void waiter_add(Waiter **head, Waiter *w, enum WaitType wait, cmp_fn fn, Mutex *mutex)
-{
-    lock(mutex);
-
-    for (; *head; head = pnext(*head, wait))
-    {
-        Waiter *item = *head;
-
-        if (fn(w, item) >= 0)
-        {
-            break;
-        }
-    }
-
-    _waiter_insert(head, w, pnext(w, wait));
-
-    unlock(mutex);
-}
-
-void waiter_remove(Waiter **head, Waiter *w, enum WaitType wait, Mutex *mutex)
-{
-    lock(mutex);
-
-    for (; *head; head = pnext(*head, wait))
-    {
-        Waiter *item = *head;
-
-        if (item == w)
-        {
-            // unlink this item
-            Waiter **next = pnext(w, wait);
-            *head = *next;
-            *next = 0;
-            break;
-        }
-    }
-
-    unlock(mutex);
-}
-
-static int cmp_time(const Waiter *w1, const Waiter *w2)
-{
+    const Waiter *w1 = (Waiter*) a1;
+    const Waiter *w2 = (Waiter*) a2;
     const struct timespec *t1 = & w1->expire;
     const struct timespec *t2 = & w2->expire;
 
@@ -131,6 +51,22 @@ static int cmp_time(const Waiter *w1, const Waiter *w2)
     }
 
     return t2->tv_sec - t1->tv_sec;
+}
+
+    /*
+     *
+     */
+
+static void ** pnext_wait(void *v)
+{
+    Waiter *w = (Waiter*) v;
+    return (void**) & w->next_wait;
+}
+
+static void ** pnext_timed(void *v)
+{
+    Waiter *w = (Waiter*) v;
+    return (void**) & w->next_timed;
 }
 
     /*
@@ -147,6 +83,69 @@ typedef struct
 
 static Timer timer;
 
+static void timer_reschedule(Timer *t)
+{
+    //  TODO
+}
+
+static void timer_add(Waiter *w)
+{
+    Timer *t = & timer;
+    lock(& t->mutex);
+
+    list_add_sorted((void**) & t->waiters, w, pnext_timed, cmp_time, 0);
+    // TODO : reschedule timer?
+
+    unlock(& t->mutex);
+}
+
+static void timer_remove(Waiter *w)
+{
+    Timer *t = & timer;
+    lock(& t->mutex);
+
+    list_remove((void**) & t->waiters, w, pnext_timed, 0);
+    // TODO : reschedule timer?
+
+    unlock(& t->mutex);
+}
+
+    /*
+     *
+     */
+
+static void semaphore_append(Semaphore *s, Waiter *w)
+{
+    list_append((void**) & s->waiters, & w, pnext_wait, & s->mutex);
+}
+
+static void semaphore_remove(Semaphore *s, Waiter *w)
+{
+    list_remove((void**) & s->waiters, w, pnext_wait, & s->mutex);
+}
+
+    /*
+     * Called when either Timer or Semaphore need to post
+     */
+
+static void waiter_post(Waiter *w, int code, bool is_timer)
+{
+    // unlink from Semaphore
+    if (is_timer)
+    {
+        semaphore_remove(w->semaphore, w);
+    }
+    // unlink from Timer
+    if (w->timed && !is_timer)
+    {
+        timer_remove(w);
+    }
+    // set the return code
+    w->code = code;
+    // post semaphore
+    sem_post(& w->sem);
+}
+
     /*
      *
      */
@@ -154,30 +153,30 @@ static Timer timer;
 int semaphore_timed_wait(Semaphore *s, struct timespec *t)
 {
     Waiter w;
-
     memset(& w, 0, sizeof(w));
+
+    w.semaphore = s;
     sem_init(& w.sem, 0, 0);
 
     if (t)
     {
         w.expire = *t;
-        //  Append to Timer list
-        waiter_add(& timer.waiters, & w, WAIT_TIMED, cmp_time, & timer.mutex);
-        //  TODO : Reshedule timer?
+        w.timed = true;
+        timer_add(& w);
     }
 
-    // Append to S's list
-    waiter_append(& s->waiters, & w, WAIT_BLOCK, & s->mutex);
+    semaphore_append(s, & w);
 
+    // TODO : check posix return code
     sem_wait(& w.sem);
 
-    // Remove from the list
-    waiter_remove(& s->waiters, & w, WAIT_BLOCK, & s->mutex);
+    // TODO : move into Semaphore?
+    semaphore_remove(s, & w);
 
     if (t)
     {
-        //  Remove from Timer list
-        waiter_remove(& timer.waiters, & w, WAIT_TIMED, & timer.mutex);
+        // TODO : move into Timer?
+        timer_remove(& w);
     }
 
     sem_destroy(& w.sem);
@@ -188,15 +187,6 @@ int semaphore_timed_wait(Semaphore *s, struct timespec *t)
 int semaphore_wait(Semaphore *s)
 {
     return semaphore_timed_wait(s, 0);
-}
-
-    /*
-     *
-     */
-
-int main()
-{
-    return 0;
 }
 
 // FIN

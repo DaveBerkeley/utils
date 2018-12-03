@@ -1,4 +1,8 @@
 
+#if !defined(__MUTEX_H__)
+
+#define __MUTEX_H__
+
 #include <pthread.h>
 
 #include "environment.h"
@@ -22,5 +26,7 @@ static inline void unlock(Mutex *mutex)
         ASSERT(err == 0);
     }
 }
+
+#endif // __MUTEX_H__
 
 //  FIN

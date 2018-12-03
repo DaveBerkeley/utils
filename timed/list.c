@@ -3,8 +3,6 @@
 
 #include "list.h"
 
-typedef void** (*pnext)(void *item);
-
 static void _list_insert(void **head, void *w, void **next)
 {
     *next = *head;
@@ -34,9 +32,7 @@ void list_append(void **head, void *w, pnext next_fn, Mutex *mutex)
     unlock(mutex);
 }
 
-typedef int (*cmp_fn)(const void *, const void *);
-
-void list_add(void **head, void *w, pnext next_fn, cmp_fn cmp, Mutex *mutex)
+void list_add_sorted(void **head, void *w, pnext next_fn, cmp_fn cmp, Mutex *mutex)
 {
     lock(mutex);
 

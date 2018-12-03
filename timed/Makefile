@@ -5,6 +5,7 @@ LDFLAGS = -pthread
 
 SRC = timed.c 
 SRC += list.c 
+SRC += main.c 
 
 APP = timed
 OBJDIR = obj
