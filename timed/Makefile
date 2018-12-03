@@ -4,6 +4,7 @@ CFLAGS = -Wall -Wextra
 LDFLAGS = -pthread
 
 SRC = timed.c 
+SRC += list.c 
 
 APP = timed
 OBJDIR = obj

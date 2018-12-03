@@ -1,31 +1,10 @@
 
 #include <stdbool.h>
-#include <pthread.h>
 #include <semaphore.h>
 #include <assert.h>
 #include <string.h>
 
-#define ASSERT(x) assert(x)
-
-typedef pthread_mutex_t Mutex;
-
-static inline void lock(Mutex *mutex)
-{
-    if (mutex)
-    {
-        pthread_mutex_lock(mutex);
-        // TODO : check error
-    }
-}
-
-static inline void unlock(Mutex *mutex)
-{
-    if (mutex)
-    {
-        pthread_mutex_unlock(mutex);
-        // TODO : check error
-    }
-}
+#include "timed.h"
 
     /*
      *
@@ -171,19 +150,6 @@ static Timer timer;
     /*
      *
      */
-
-typedef struct Semaphore
-{
-    //  Handle post()
-
-    //  TODO : List of active semaphores
-    struct Semaphore *next;
-
-    //  list of waiter objects blocking on this Semaphore
-    Waiter *waiters;
-    //  lock for the list
-    Mutex mutex;
-}   Semaphore;
 
 int semaphore_timed_wait(Semaphore *s, struct timespec *t)
 {
