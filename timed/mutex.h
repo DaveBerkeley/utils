@@ -4,17 +4,23 @@
 #define __MUTEX_H__
 
 #include <pthread.h>
+#include <stdbool.h>
 
 #include "environment.h"
 
-typedef pthread_mutex_t Mutex;
+typedef struct 
+{
+    pthread_mutex_t mutex;
+    int locked;
+}   Mutex;
 
 static inline void lock(Mutex *mutex)
 {
     if (mutex)
     {
-        const int err = pthread_mutex_lock(mutex);
+        const int err = pthread_mutex_lock(& mutex->mutex);
         ASSERT(err == 0);
+        mutex->locked += 1;
     }
 }
 
@@ -22,7 +28,8 @@ static inline void unlock(Mutex *mutex)
 {
     if (mutex)
     {
-        const int err = pthread_mutex_unlock(mutex);
+        mutex->locked -= 1;
+        const int err = pthread_mutex_unlock(& mutex->mutex);
         ASSERT(err == 0);
     }
 }

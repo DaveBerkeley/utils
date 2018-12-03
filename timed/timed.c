@@ -54,7 +54,7 @@ static int cmp_time(const void *a1, const void *a2)
 }
 
     /*
-     *
+     *  Helper functions used by list_*() library
      */
 
 static void ** pnext_wait(void *v)
@@ -83,9 +83,11 @@ typedef struct
 
 static Timer timer;
 
-static void timer_reschedule(Timer *t)
+static void timer_reschedule()
 {
+    Timer *t = & timer;
     //  TODO
+    ASSERT(t->mutex.locked);
 }
 
 static void timer_add(Waiter *w)
@@ -94,7 +96,7 @@ static void timer_add(Waiter *w)
     lock(& t->mutex);
 
     list_add_sorted((void**) & t->waiters, w, pnext_timed, cmp_time, 0);
-    // TODO : reschedule timer?
+    timer_reschedule();
 
     unlock(& t->mutex);
 }
@@ -105,7 +107,7 @@ static void timer_remove(Waiter *w)
     lock(& t->mutex);
 
     list_remove((void**) & t->waiters, w, pnext_timed, 0);
-    // TODO : reschedule timer?
+    timer_reschedule();
 
     unlock(& t->mutex);
 }
@@ -169,15 +171,6 @@ int semaphore_timed_wait(Semaphore *s, struct timespec *t)
 
     // TODO : check posix return code
     sem_wait(& w.sem);
-
-    // TODO : move into Semaphore?
-    semaphore_remove(s, & w);
-
-    if (t)
-    {
-        // TODO : move into Timer?
-        timer_remove(& w);
-    }
 
     sem_destroy(& w.sem);
 

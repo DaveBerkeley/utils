@@ -13,6 +13,10 @@ typedef int (*cmp_fn)(const void *w1, const void *w2);
 
 void list_add_sorted(void **head, void *w, pnext next_fn, cmp_fn cmp, Mutex *mutex);
 
+typedef int (*visitor)(void *w, void *arg);
+
+void list_visit(void **head, pnext next_fn, visitor fn, void *arg, Mutex *mutex);
+
 #endif // __LIST_H__
 
 //  FIN

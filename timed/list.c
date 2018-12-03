@@ -72,5 +72,22 @@ void list_remove(void **head, void *w, pnext next_fn, Mutex *mutex)
     unlock(mutex);
 }
 
+void list_visit(void **head, pnext next_fn, visitor fn, void *arg, Mutex *mutex)
+{
+    lock(mutex);
+
+    for (; *head; head = next_fn(*head))
+    {
+        void *item = *head;
+
+        if (fn(item, arg))
+        {
+            break;
+        }
+    }
+
+    unlock(mutex);
+}
+
 //  FIN
 
