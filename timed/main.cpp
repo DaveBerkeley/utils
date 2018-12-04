@@ -1,4 +1,6 @@
 
+#include <stdlib.h>
+
 #include <gtest/gtest.h>
 
 #include "list.h"
@@ -47,6 +49,16 @@ static bool item_remove(Item **head, Item *w)
 {
     return list_remove((void**) head, w, pnext_item, 0);
 }
+
+static int item_cmp(const void *w1, const void *w2)
+{
+    Item *i1 = (Item*) w1;
+    Item *i2 = (Item*) w2;
+
+    return i2->i - i1->i;
+}
+
+
     /*
      *
      */
@@ -229,9 +241,70 @@ TEST(List, Remove)
     }
 
     //  Try removing from an empty list
+    EXPECT_EQ(0, head);
     found = item_remove(& head, item);
     EXPECT_EQ(false, found);
 
+}
+
+    /*
+     *
+     */
+
+TEST(List, Sorted)
+{
+    int size;
+    Item *head = 0;
+
+    Item *item = 0;
+    int num = 100;
+    Item items[num];
+
+    //  Initialise each item
+    for (int i = 0; i < num; i++)
+    {
+        init_item(& items[i], i);
+    }
+
+    // add random items sorted
+    int done = 0;
+    while (done < num)
+    {
+        long int r = random();
+        int idx = r % num;
+
+        item = & items[idx];
+        if (item->okay)
+        {
+            continue;
+        }
+
+        item->okay = true;
+        done += 1;
+        list_add_sorted((void**) & head, item, pnext_item, item_cmp, 0);
+        size = item_size(& head);
+        EXPECT_EQ(done, size);
+    }
+
+    //  Pop off stack : it should be in order
+    for (int i = 0; i < num; i++)
+    {
+        item = item_pop(& head);
+        EXPECT_TRUE(item);
+        // check it is the correct item
+        EXPECT_EQ(& items[i], item);
+
+        // check the item is correct
+        item_validate(item, i);
+    }
+
+    EXPECT_EQ(0, head);
+
+    item = item_pop(& head);
+    EXPECT_EQ(0, item);
+
+    size = item_size(& head);
+    EXPECT_EQ(0, size);
 }
 
 //  FIN
