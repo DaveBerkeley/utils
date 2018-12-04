@@ -3,11 +3,16 @@
 
 #define __LIST_H__
 
+#include "mutex.h"
+
 typedef void** (*pnext)(void *item);
 
-void list_insert(void **head, void *w, pnext next_fn, Mutex *mutex);
+void list_push(void **head, void *w, pnext next_fn, Mutex *mutex);
 void list_append(void **head, void *w, pnext next_fn, Mutex *mutex);
 void list_remove(void **head, void *w, pnext next_fn, Mutex *mutex);
+int list_size(void **head, pnext next_fn, Mutex *mutex);
+
+void *list_pop(void **head, pnext next_fn, Mutex *mutex);
 
 typedef int (*cmp_fn)(const void *w1, const void *w2);
 
