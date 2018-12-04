@@ -119,14 +119,10 @@ bool list_remove(void **head, void *w, pnext next_fn, Mutex *mutex)
 
     for (; *head; head = next_fn(*head))
     {
-        void *item = *head;
-
-        if (item == w)
+        if (w == *head)
         {
-            // unlink this item
-            void **next = next_fn(w);
-            *head = *next;
-            *next = 0;
+            // unlink top item
+            list_pop(head, next_fn, 0);
             found = true;
             break;
         }
