@@ -1,7 +1,13 @@
 
 CC = g++
+LL = g++
 CFLAGS = -Wall -Wextra
-LDFLAGS = -pthread
+LDFLAGS = -pthread 
+
+# Link with google test
+GTEST = /usr/src/gtest
+LDFLAGS += $(GTEST)/libgtest_main.a
+LDFLAGS += $(GTEST)/libgtest.a
 
 SRC = timed.c 
 SRC += list.c 
@@ -30,7 +36,7 @@ test: $(APP)
 	./$(APP)
 
 $(APP): $(OBJS) $(XOBJS)
-	$(CC) $(LDFLAGS) -o $@ $^
+	$(LL) $(LDFLAGS) -o $@ $^
 
 $(OBJDIR)/%.d : %.c
 	@mkdir -p $(dir $(OBJDIR)/$<)

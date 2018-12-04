@@ -1,7 +1,8 @@
 
-int main(void)
+#include <gtest/gtest.h>
+
+TEST(One, Two)
 {
-    return 0;
 }
 
 //  FIN
