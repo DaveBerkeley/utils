@@ -14,6 +14,8 @@ typedef struct
     int locked;
 }   Mutex;
 
+#define MUTEX_INIT { PTHREAD_MUTEX_INITIALIZER, false }
+
 static inline void lock(Mutex *mutex)
 {
     if (mutex)

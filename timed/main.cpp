@@ -45,9 +45,9 @@ static int item_size(Item **head)
     return list_size((void**) head, pnext_item, 0);
 }
 
-static bool item_remove(Item **head, Item *w)
+static bool item_remove(Item **head, Item *w, Mutex *mutex)
 {
-    return list_remove((void**) head, w, pnext_item, 0);
+    return list_remove((void**) head, w, pnext_item, mutex);
 }
 
 static int item_cmp(const void *w1, const void *w2)
@@ -192,7 +192,7 @@ TEST(List, Remove)
     bool  found;
     int i = num - 1;
     Item *item = & items[i];
-    found = item_remove(& head, item);
+    found = item_remove(& head, item, 0);
     EXPECT_EQ(true, found);
     item->okay = true;
 
@@ -202,13 +202,13 @@ TEST(List, Remove)
     EXPECT_EQ(num-1, size);
 
     // can't remove it twice
-    found = item_remove(& head, item);
+    found = item_remove(& head, item, 0);
     EXPECT_EQ(false, found);
 
     //  Remove the first item
     i = 0;
     item = & items[i];
-    found = item_remove(& head, item);
+    found = item_remove(& head, item, 0);
     EXPECT_EQ(true, found);
     item->okay = true;
 
@@ -217,13 +217,13 @@ TEST(List, Remove)
     EXPECT_EQ(num-2, size);
 
     // can't remove it twice
-    found = item_remove(& head, item);
+    found = item_remove(& head, item, 0);
     EXPECT_EQ(false, found);
 
     //  Remove from the middle
     i = num / 2;
     item = & items[i];
-    found = item_remove(& head, item);
+    found = item_remove(& head, item, 0);
     EXPECT_EQ(true, found);
     item->okay = true;
 
@@ -232,7 +232,7 @@ TEST(List, Remove)
     EXPECT_EQ(num-3, size);
 
     // can't remove it twice
-    found = item_remove(& head, item);
+    found = item_remove(& head, item, 0);
     EXPECT_EQ(false, found);
 
     //  pop the rest off
@@ -242,7 +242,7 @@ TEST(List, Remove)
 
     //  Try removing from an empty list
     EXPECT_EQ(0, head);
-    found = item_remove(& head, item);
+    found = item_remove(& head, item, 0);
     EXPECT_EQ(false, found);
 
 }
@@ -304,6 +304,99 @@ TEST(List, Sorted)
     EXPECT_EQ(0, item);
 
     size = item_size(& head);
+    EXPECT_EQ(0, size);
+}
+
+    /*
+     *
+     */
+
+typedef struct {
+    Item *head;
+    Mutex mutex;
+}   ThreadTest;
+
+void * thrash(void *arg)
+{
+    ASSERT(arg);
+    ThreadTest *tt = (ThreadTest*) arg;
+    Item **head = & tt->head;
+    Mutex *mutex = & tt->mutex;
+
+    Item *item = 0;
+    int num = 100;
+    Item items[num];
+
+    //  Initialise each item
+    for (int i = 0; i < num; i++)
+    {
+        init_item(& items[i], i);
+    }
+
+    // add random items sorted
+    int done = 0;
+    while (done < num)
+    {
+        long int r = random();
+        int idx = r % num;
+
+        item = & items[idx];
+        if (item->okay)
+        {
+            continue;
+        }
+
+        item->okay = true;
+        done += 1;
+        list_add_sorted((void**) head, item, pnext_item, item_cmp, mutex);
+    }
+
+    //  Remove the items
+    for (int i = 0; i < num; i++)
+    {
+        item = & items[i];
+        bool found = item_remove(head, item, mutex);
+        EXPECT_TRUE(found);
+        // check it is the correct item
+        EXPECT_EQ(& items[i], item);
+
+        // check the item is correct
+        item_validate(item, i);
+    }
+
+    return 0;
+}
+
+    /*
+     *
+     */
+
+TEST(List, Thread)
+{
+    ThreadTest tt = { 0, MUTEX_INIT, };
+
+    // check the test works
+    thrash(& tt);
+    EXPECT_EQ(0, tt.head);
+
+    int num = 100;
+    pthread_t threads[num];
+
+    for (int i = 0; i < num; i++)
+    {
+        int err = pthread_create(& threads[i], 0, thrash, & tt);
+        ASSERT(err == 0);
+    }
+
+    for (int i = 0; i < num; i++)
+    {
+        int err = pthread_join(threads[i], 0);
+        ASSERT(err == 0);
+    }
+
+    // should be an empty list
+    EXPECT_EQ(0, tt.head);
+    int size = item_size(& tt.head);
     EXPECT_EQ(0, size);
 }
 
