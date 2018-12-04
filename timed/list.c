@@ -108,12 +108,13 @@ void *list_pop(void **head, pnext next_fn, Mutex *mutex)
     return w;
 }
 
-void list_remove(void **head, void *w, pnext next_fn, Mutex *mutex)
+bool list_remove(void **head, void *w, pnext next_fn, Mutex *mutex)
 {
     ASSERT(head);
     ASSERT(w);
     ASSERT(next_fn);
 
+    bool found = false;
     lock(mutex);
 
     for (; *head; head = next_fn(*head))
@@ -126,11 +127,13 @@ void list_remove(void **head, void *w, pnext next_fn, Mutex *mutex)
             void **next = next_fn(w);
             *head = *next;
             *next = 0;
+            found = true;
             break;
         }
     }
 
     unlock(mutex);
+    return found;
 }
 
 void list_visit(void **head, pnext next_fn, visitor fn, void *arg, Mutex *mutex)
