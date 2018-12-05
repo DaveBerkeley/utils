@@ -53,9 +53,9 @@ void list_append(void **head, void *w, pnext next_fn, Mutex *mutex)
 
     lock(mutex);
 
-    while (*head)
+    for (; *head; head = next_fn(*head))
     {
-        head = next_fn(*head);
+        ;
     }
 
     _list_insert(head, w, next_fn(w));
@@ -74,9 +74,7 @@ void list_add_sorted(void **head, void *w, pnext next_fn, cmp_fn cmp, Mutex *mut
 
     for (; *head; head = next_fn(*head))
     {
-        void *item = *head;
-
-        if (cmp(w, item) >= 0)
+        if (cmp(w, *head) >= 0)
         {
             break;
         }
@@ -132,25 +130,33 @@ bool list_remove(void **head, void *w, pnext next_fn, Mutex *mutex)
     return found;
 }
 
-void list_visit(void **head, pnext next_fn, visitor fn, void *arg, Mutex *mutex)
+void * list_find(void **head, pnext next_fn, visitor fn, void *arg, Mutex *mutex)
 {
     ASSERT(head);
     ASSERT(next_fn);
     ASSERT(fn);
 
+    void *item = 0;
+
     lock(mutex);
 
     for (; *head; head = next_fn(*head))
     {
-        void *item = *head;
-
-        if (fn(item, arg))
+        if (fn(*head, arg))
         {
+            item = *head;
             break;
         }
     }
 
     unlock(mutex);
+
+    return item;
+}
+
+void list_visit(void **head, pnext next_fn, visitor fn, void *arg, Mutex *mutex)
+{
+    list_find(head, next_fn, fn, arg, mutex);
 }
 
 //  FIN

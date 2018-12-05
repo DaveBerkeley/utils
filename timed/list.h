@@ -20,6 +20,7 @@ void list_add_sorted(void **head, void *w, pnext next_fn, cmp_fn cmp, Mutex *mut
 
 typedef int (*visitor)(void *w, void *arg);
 
+void * list_find(void **head, pnext next_fn, visitor fn, void *arg, Mutex *mutex);
 void list_visit(void **head, pnext next_fn, visitor fn, void *arg, Mutex *mutex);
 
 #endif // __LIST_H__
