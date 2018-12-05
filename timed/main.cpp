@@ -5,6 +5,66 @@
 
 #include "list.h"
 
+    /**
+     * @brief helper function to create a table of indexes
+     */
+
+static void rand_array(int *data, int num)
+{
+    memset(data, 0, num * sizeof(data[0]));
+
+    //  create an ordered array
+    for (int i = 0; i < num; i++)
+    {
+        data[i] = i;
+    }
+
+    for (int len = num; len; len--)
+    {
+        // pick a random element
+        int r = random();
+        int idx = r % len;
+        // swap this idx with the end one
+        int tmp = data[len-1];
+        data[len-1] = data[idx];
+        data[idx] = tmp;
+        // each pass shrinks the array we work on ..
+    }
+}
+
+TEST(Random, Array)
+{
+    int num = 100;
+    int block[num];
+
+    rand_array(block, num);
+
+    bool test[num];
+    memset(test, 0, sizeof(test));
+
+    //  mark each idx in the block
+    for (int i = 0; i < num; i++)
+    {
+        int idx = block[i];
+        // each index is in the range 0 <= n < num
+        EXPECT_TRUE(idx >= 0);
+        EXPECT_TRUE(idx < num);
+        // each idx must only appear once
+        EXPECT_FALSE(test[idx]);
+        test[idx] = true;
+    }
+
+    //  check that all the values are set
+    for (int i = 0; i < num; i++)
+    {
+        EXPECT_TRUE(test[i]);
+    }
+}
+
+    /*
+     *
+     */
+
 typedef struct Item
 {
     int i;
@@ -333,21 +393,15 @@ void * thrash(void *arg)
         init_item(& items[i], i);
     }
 
-    // add random items sorted
-    int done = 0;
-    while (done < num)
+    //  create a randomised table of indexes
+    int block[num];
+    rand_array(block, num);
+
+    // add our items randomly to sorted list
+    for (int i = 0; i < num; i++)
     {
-        long int r = random();
-        int idx = r % num;
-
+        int idx = block[i];
         item = & items[idx];
-        if (item->okay)
-        {
-            continue;
-        }
-
-        item->okay = true;
-        done += 1;
         list_add_sorted((void**) head, item, pnext_item, item_cmp, mutex);
     }
 
