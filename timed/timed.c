@@ -119,6 +119,18 @@ static Timer timer;
      *
      */
 
+static void timer_lock()
+{
+    Timer *t = & timer;
+    lock(& t->mutex);
+}
+
+static void timer_unlock()
+{
+    Timer *t = & timer;
+    unlock(& t->mutex);
+}
+
 static Waiter * timer_peek()
 {
     Timer *t = & timer;
@@ -147,12 +159,10 @@ static void timer_reschedule()
 static void timer_add(Waiter *w)
 {
     Timer *t = & timer;
-    lock(& t->mutex);
+    ASSERT(t->mutex.locked);
 
     list_add_sorted((void**) & t->waiters, w, pnext_timed, cmp_waiter, 0);
     timer_reschedule();
-
-    unlock(& t->mutex);
 }
 
 static void timer_remove(Waiter *w)
@@ -242,10 +252,18 @@ enum semaphore_code semaphore_timed_wait(Semaphore *s, struct timespec *t)
     {
         w.expire = *t;
         w.timed = true;
-        timer_add(& w);
-    }
+        timer_lock();
 
-    semaphore_append(s, & w);
+        //  these must be atomic, in case timer goes off immeadiately
+        timer_add(& w);
+        semaphore_append(s, & w);
+
+        timer_unlock();
+    }
+    else
+    {
+        semaphore_append(s, & w);
+    }
 
     // TODO : check posix return code
     sem_wait(& w.sem);
