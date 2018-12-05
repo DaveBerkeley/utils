@@ -118,6 +118,10 @@ static int item_cmp(const void *w1, const void *w2)
     return i2->i - i1->i;
 }
 
+static void item_add_sorted(Item **head, Item *w, Mutex *mutex)
+{
+    list_add_sorted((void**) head, w, pnext_item, item_cmp, mutex);
+}
 
     /*
      *
@@ -326,24 +330,15 @@ TEST(List, Sorted)
         init_item(& items[i], i);
     }
 
-    // add random items sorted
-    int done = 0;
-    while (done < num)
+    int block[num];
+    rand_array(block, num);
+
+    // add our items randomly to sorted list
+    for (int i = 0; i < num; i++)
     {
-        long int r = random();
-        int idx = r % num;
-
+        int idx = block[i];
         item = & items[idx];
-        if (item->okay)
-        {
-            continue;
-        }
-
-        item->okay = true;
-        done += 1;
-        list_add_sorted((void**) & head, item, pnext_item, item_cmp, 0);
-        size = item_size(& head);
-        EXPECT_EQ(done, size);
+        item_add_sorted(& head, item, 0);
     }
 
     //  Pop off stack : it should be in order
@@ -402,7 +397,7 @@ void * thrash(void *arg)
     {
         int idx = block[i];
         item = & items[idx];
-        list_add_sorted((void**) head, item, pnext_item, item_cmp, mutex);
+        item_add_sorted(head, item, mutex);
     }
 
     //  Remove the items
@@ -452,6 +447,68 @@ TEST(List, Thread)
     EXPECT_EQ(0, tt.head);
     int size = item_size(& tt.head);
     EXPECT_EQ(0, size);
+}
+
+    /*
+     *
+     */
+
+static int item_match(void *w, void *arg)
+{
+    Item *item = (Item*) w;
+    Item *match = (Item*) arg;
+
+    return (item->i == match->i) && (item->j == match->j);
+}
+
+TEST(List, Find)
+{
+    int idx;
+    Item *head = 0;
+
+    Item *item = 0;
+    int num = 10;
+    Item items[num];
+
+    //  Initialise each item
+    for (int i = 0; i < num; i++)
+    {
+        init_item(& items[i], i);
+    }
+
+    //  create a randomised table of indexes
+    int block[num];
+    rand_array(block, num);
+
+    // add our items randomly to sorted list
+    for (int i = 0; i < num; i++)
+    {
+        int idx = block[i];
+        item = & items[idx];
+        item_add_sorted(& head, item, 0);
+    }
+
+    //  find first item
+    idx = 0;
+    item = (Item*) list_find((void**) & head, pnext_item, item_match, & items[idx], 0);
+    EXPECT_EQ(item, & items[idx]);
+
+    //  find last item
+    idx = num-1;
+    item = (Item*) list_find((void**) & head, pnext_item, item_match, & items[idx], 0);
+    EXPECT_EQ(item, & items[idx]);
+
+    //  find middle item
+    idx = num / 2;
+    item = (Item*) list_find((void**) & head, pnext_item, item_match, & items[idx], 0);
+    EXPECT_EQ(item, & items[idx]);
+
+    //  try to find non-existent item
+    Item wrong;
+    init_item(& wrong, -5);
+
+    item = (Item*) list_find((void**) & head, pnext_item, item_match, & wrong, 0);
+    EXPECT_EQ(0, item);
 }
 
 //  FIN
