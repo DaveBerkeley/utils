@@ -70,7 +70,6 @@ typedef struct Item
     int i;
     struct Item *next;
     int j;
-    bool okay;
 } Item;
 
 static void** pnext_item(void *v)
@@ -84,7 +83,6 @@ static void init_item(Item *item, int n)
     item->i = n + 100;
     item->j = n + 200;
     item->next = 0;
-    item->okay = false;
 }
 
 static void item_validate(Item *item, int i)
@@ -121,6 +119,18 @@ static int item_cmp(const void *w1, const void *w2)
 static void item_add_sorted(Item **head, Item *w, Mutex *mutex)
 {
     list_add_sorted((void**) head, w, pnext_item, item_cmp, mutex);
+}
+
+static int item_match(void *w, void *arg)
+{
+    Item *item = (Item*) w;
+    Item *match = (Item*) arg;
+    return (item->i == match->i) && (item->j == match->j);
+}
+
+static Item * item_find(Item **head, Item *w, Mutex *mutex)
+{
+    return (Item*) list_find((void**) head, pnext_item, item_match, w, mutex);
 }
 
     /*
@@ -258,7 +268,6 @@ TEST(List, Remove)
     Item *item = & items[i];
     found = item_remove(& head, item, 0);
     EXPECT_EQ(true, found);
-    item->okay = true;
 
     item_validate(item, i);
     // check it has gone
@@ -274,7 +283,6 @@ TEST(List, Remove)
     item = & items[i];
     found = item_remove(& head, item, 0);
     EXPECT_EQ(true, found);
-    item->okay = true;
 
     // check it has gone
     size = item_size(& head);
@@ -289,7 +297,6 @@ TEST(List, Remove)
     item = & items[i];
     found = item_remove(& head, item, 0);
     EXPECT_EQ(true, found);
-    item->okay = true;
 
     // check it has gone
     size = item_size(& head);
@@ -453,14 +460,6 @@ TEST(List, Thread)
      *
      */
 
-static int item_match(void *w, void *arg)
-{
-    Item *item = (Item*) w;
-    Item *match = (Item*) arg;
-
-    return (item->i == match->i) && (item->j == match->j);
-}
-
 TEST(List, Find)
 {
     int idx;
@@ -490,24 +489,24 @@ TEST(List, Find)
 
     //  find first item
     idx = 0;
-    item = (Item*) list_find((void**) & head, pnext_item, item_match, & items[idx], 0);
+    item = item_find(& head, & items[idx], 0);
     EXPECT_EQ(item, & items[idx]);
 
     //  find last item
     idx = num-1;
-    item = (Item*) list_find((void**) & head, pnext_item, item_match, & items[idx], 0);
+    item = item_find(& head, & items[idx], 0);
     EXPECT_EQ(item, & items[idx]);
 
     //  find middle item
     idx = num / 2;
-    item = (Item*) list_find((void**) & head, pnext_item, item_match, & items[idx], 0);
+    item = item_find(& head, & items[idx], 0);
     EXPECT_EQ(item, & items[idx]);
 
     //  try to find non-existent item
     Item wrong;
     init_item(& wrong, -5);
 
-    item = (Item*) list_find((void**) & head, pnext_item, item_match, & wrong, 0);
+    item = item_find(& head, & wrong, 0);
     EXPECT_EQ(0, item);
 }
 
