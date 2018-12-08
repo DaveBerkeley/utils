@@ -16,6 +16,7 @@ enum semaphore_code
     SEMAPHORE_POST = 1,
     SEMAPHORE_TIMEOUT,
     SEMAPHORE_SIGNAL,
+    SEMAPHORE_ERROR,
 };  
 
 typedef struct Semaphore

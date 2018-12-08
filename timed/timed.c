@@ -3,6 +3,7 @@
 #include <semaphore.h>
 #include <assert.h>
 #include <string.h>
+#include <errno.h>
 
 #include "mutex.h"
 #include "list.h"
@@ -85,9 +86,9 @@ static void waiter_post(Waiter *waiter, enum semaphore_code code)
      *
      */
 
-static void semaphore_append(Semaphore *s, Waiter *w)
+static void semaphore_append(Semaphore *s, Waiter *w, Mutex *mutex)
 {
-    list_append((void**) & s->waiters, & w, pnext_wait, & s->mutex);
+    list_append((void**) & s->waiters, & w, pnext_wait, mutex);
 }
 
 static bool semaphore_remove(Waiter *w)
@@ -98,7 +99,7 @@ static bool semaphore_remove(Waiter *w)
 
 static Waiter * semaphore_pop(Semaphore *s, Mutex *mutex)
 {
-    return (Waiter*) list_pop((void**) & s->waiters, pnext_wait, mutex); 
+    return (Waiter*) list_pop((void**) & s->waiters, pnext_wait, mutex);
 }
 
     /*
@@ -240,13 +241,10 @@ enum semaphore_code semaphore_timed_wait(Semaphore *s, struct timespec *t)
     Waiter w;
     memset(& w, 0, sizeof(w));
 
-    // TODO : check the semaphore count?
-    // might be possible to exit immeadiately
-
     w.semaphore = s;
     sem_init(& w.sem, 0, 0);
 
-    w.code = SEMAPHORE_SIGNAL;
+    w.code = SEMAPHORE_ERROR;
 
     if (t)
     {
@@ -256,17 +254,31 @@ enum semaphore_code semaphore_timed_wait(Semaphore *s, struct timespec *t)
 
         //  these must be atomic, in case timer goes off immeadiately
         timer_add(& w);
-        semaphore_append(s, & w);
+        semaphore_append(s, & w, & s->mutex);
 
         timer_unlock();
     }
     else
     {
-        semaphore_append(s, & w);
+        semaphore_append(s, & w, & s->mutex);
     }
 
-    // TODO : check posix return code
-    sem_wait(& w.sem);
+    // TODO : check the semaphore count?
+    // might be possible to exit immeadiately
+
+    int err = sem_wait(& w.sem);
+    if (err < 0)
+    {
+        // check return code
+        if (errno == EINTR)
+        {
+            w.code = SEMAPHORE_SIGNAL;
+        }
+        else
+        {
+            w.code = SEMAPHORE_ERROR;
+        }
+    }
 
     sem_destroy(& w.sem);
 
