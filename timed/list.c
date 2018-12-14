@@ -3,7 +3,7 @@
 
 #include "list.h"
 
-static void _list_insert(void **head, void *w, void **next)
+static void _list_insert(pList* head, pList w, pList *next)
 {
     ASSERT(head);
     ASSERT(w);
@@ -13,7 +13,7 @@ static void _list_insert(void **head, void *w, void **next)
     *head = w;
 }
 
-int list_size(void **head, pnext next_fn, Mutex *mutex)
+int list_size(pList *head, pnext next_fn, Mutex *mutex)
 {
     ASSERT(head);
     ASSERT(next_fn);
@@ -32,7 +32,7 @@ int list_size(void **head, pnext next_fn, Mutex *mutex)
     return count;
 }
 
-void list_push(void **head, void *w, pnext next_fn, Mutex *mutex)
+void list_push(pList *head, pList w, pnext next_fn, Mutex *mutex)
 {
     ASSERT(head);
     ASSERT(w);
@@ -45,7 +45,7 @@ void list_push(void **head, void *w, pnext next_fn, Mutex *mutex)
     unlock(mutex);
 }
 
-void list_append(void **head, void *w, pnext next_fn, Mutex *mutex)
+void list_append(pList *head, pList w, pnext next_fn, Mutex *mutex)
 {
     ASSERT(head);
     ASSERT(w);
@@ -63,7 +63,7 @@ void list_append(void **head, void *w, pnext next_fn, Mutex *mutex)
     unlock(mutex);
 }
 
-void list_add_sorted(void **head, void *w, pnext next_fn, cmp_fn cmp, Mutex *mutex)
+void list_add_sorted(pList *head, pList w, pnext next_fn, cmp_fn cmp, Mutex *mutex)
 {
     ASSERT(head);
     ASSERT(w);
@@ -85,18 +85,18 @@ void list_add_sorted(void **head, void *w, pnext next_fn, cmp_fn cmp, Mutex *mut
     unlock(mutex);
 }
 
-void *list_pop(void **head, pnext next_fn, Mutex *mutex)
+pList list_pop(pList *head, pnext next_fn, Mutex *mutex)
 {
     ASSERT(head);
     ASSERT(next_fn);
 
     lock(mutex);
 
-    void *w = *head;
+    pList w = *head;
 
     if (w)
     {
-        void** next = next_fn(w);
+        pList* next = next_fn(w);
         *head = *next;
         *next = 0;
     }
@@ -106,7 +106,7 @@ void *list_pop(void **head, pnext next_fn, Mutex *mutex)
     return w;
 }
 
-bool list_remove(void **head, void *w, pnext next_fn, Mutex *mutex)
+bool list_remove(pList *head, pList w, pnext next_fn, Mutex *mutex)
 {
     ASSERT(head);
     ASSERT(w);
@@ -130,13 +130,13 @@ bool list_remove(void **head, void *w, pnext next_fn, Mutex *mutex)
     return found;
 }
 
-void * list_find(void **head, pnext next_fn, visitor fn, void *arg, Mutex *mutex)
+pList list_find(pList *head, pnext next_fn, visitor fn, void *arg, Mutex *mutex)
 {
     ASSERT(head);
     ASSERT(next_fn);
     ASSERT(fn);
 
-    void *item = 0;
+    pList item = 0;
 
     lock(mutex);
 
@@ -154,7 +154,7 @@ void * list_find(void **head, pnext next_fn, visitor fn, void *arg, Mutex *mutex
     return item;
 }
 
-void list_visit(void **head, pnext next_fn, visitor fn, void *arg, Mutex *mutex)
+void list_visit(pList *head, pnext next_fn, visitor fn, void *arg, Mutex *mutex)
 {
     list_find(head, next_fn, fn, arg, mutex);
 }

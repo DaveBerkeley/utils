@@ -49,7 +49,7 @@ static int cmp_time(const struct timespec *t1, const struct timespec *t2)
     return t2->tv_sec - t1->tv_sec;
 }
 
-static int cmp_waiter(const void *a1, const void *a2)
+static int cmp_waiter(const pList a1, const pList a2)
 {
     const Waiter *w1 = (Waiter*) a1;
     const Waiter *w2 = (Waiter*) a2;
@@ -63,16 +63,16 @@ static int cmp_waiter(const void *a1, const void *a2)
      *  Helper functions used by list_*() library
      */
 
-static void ** pnext_wait(void *v)
+static pList* pnext_wait(pList v)
 {
     Waiter *w = (Waiter*) v;
-    return (void**) & w->next_wait;
+    return (pList*) & w->next_wait;
 }
 
-static void ** pnext_timed(void *v)
+static pList* pnext_timed(pList v)
 {
     Waiter *w = (Waiter*) v;
-    return (void**) & w->next_timed;
+    return (pList*) & w->next_timed;
 }
 
 static void waiter_post(Waiter *waiter, enum semaphore_code code)
@@ -88,18 +88,18 @@ static void waiter_post(Waiter *waiter, enum semaphore_code code)
 
 static void semaphore_append(Semaphore *s, Waiter *w, Mutex *mutex)
 {
-    list_append((void**) & s->waiters, & w, pnext_wait, mutex);
+    list_append((pList*) & s->waiters, (pList) w, pnext_wait, mutex);
 }
 
 static bool semaphore_remove(Waiter *w)
 {
     Semaphore *s = w->semaphore;
-    return list_remove((void**) & s->waiters, w, pnext_wait, & s->mutex);
+    return list_remove((pList*) & s->waiters, (pList) w, pnext_wait, & s->mutex);
 }
 
 static Waiter * semaphore_pop(Semaphore *s, Mutex *mutex)
 {
-    return (Waiter*) list_pop((void**) & s->waiters, pnext_wait, mutex);
+    return (Waiter*) list_pop((pList*) & s->waiters, pnext_wait, mutex);
 }
 
     /*
@@ -143,7 +143,7 @@ static Waiter * timer_pop()
 {
     Timer *t = & timer;
     ASSERT(t->mutex.locked);
-    return (Waiter*) list_pop((void**) & t->waiters, pnext_timed, 0);
+    return (Waiter*) list_pop((pList*) & t->waiters, pnext_timed, 0);
 }
 
 static void timer_reschedule()
@@ -162,7 +162,7 @@ static void timer_add(Waiter *w)
     Timer *t = & timer;
     ASSERT(t->mutex.locked);
 
-    list_add_sorted((void**) & t->waiters, w, pnext_timed, cmp_waiter, 0);
+    list_add_sorted((pList*) & t->waiters, (pList) w, pnext_timed, cmp_waiter, 0);
     timer_reschedule();
 }
 
@@ -177,7 +177,7 @@ static void timer_remove(Waiter *w)
     Timer *t = & timer;
     lock(& t->mutex);
 
-    list_remove((void**) & t->waiters, w, pnext_timed, 0);
+    list_remove((pList*) & t->waiters, (pList) w, pnext_timed, 0);
     timer_reschedule();
 
     unlock(& t->mutex);

@@ -73,10 +73,10 @@ typedef struct Item
     int j;
 } Item;
 
-static void** pnext_item(void *v)
+static pList* pnext_item(pList v)
 {
     Item *item = (Item*) v;
-    return (void**) & item->next;
+    return (pList*) & item->next;
 }
 
 static void init_item(Item *item, int n)
@@ -96,20 +96,20 @@ static void item_validate(Item *item, int i)
 
 static Item * item_pop(Item **head)
 {
-    return (Item*) list_pop((void**) head, pnext_item, 0);
+    return (Item*) list_pop((pList*) head, pnext_item, 0);
 }
 
 static int item_size(Item **head)
 {
-    return list_size((void**) head, pnext_item, 0);
+    return list_size((pList*) head, pnext_item, 0);
 }
 
 static bool item_remove(Item **head, Item *w, Mutex *mutex)
 {
-    return list_remove((void**) head, w, pnext_item, mutex);
+    return list_remove((pList*) head, (pList) w, pnext_item, mutex);
 }
 
-static int item_cmp(const void *w1, const void *w2)
+static int item_cmp(const pList w1, const pList w2)
 {
     Item *i1 = (Item*) w1;
     Item *i2 = (Item*) w2;
@@ -119,10 +119,10 @@ static int item_cmp(const void *w1, const void *w2)
 
 static void item_add_sorted(Item **head, Item *w, Mutex *mutex)
 {
-    list_add_sorted((void**) head, w, pnext_item, item_cmp, mutex);
+    list_add_sorted((pList*) head, (pList) w, pnext_item, item_cmp, mutex);
 }
 
-static int item_match(void *w, void *arg)
+static int item_match(pList w, void *arg)
 {
     Item *item = (Item*) w;
     Item *match = (Item*) arg;
@@ -131,7 +131,7 @@ static int item_match(void *w, void *arg)
 
 static Item * item_find(Item **head, Item *w, Mutex *mutex)
 {
-    return (Item*) list_find((void**) head, pnext_item, item_match, w, mutex);
+    return (Item*) list_find((pList*) head, pnext_item, item_match, (void*) w, mutex);
 }
 
     /*
@@ -143,7 +143,7 @@ TEST(List, Stack)
     int size;
     Item *head = 0;
 
-    size = list_size((void**) & head, pnext_item, 0);
+    size = list_size((pList*) & head, pnext_item, 0);
     EXPECT_EQ(0, size);
 
     Item *item = 0;
@@ -159,7 +159,7 @@ TEST(List, Stack)
     //  Push onto stack
     for (int i = 0; i < num; i++)
     {
-        list_push((void**) & head, & items[i], pnext_item, 0);
+        list_push((pList*) & head, (pList) & items[i], pnext_item, 0);
         size = item_size(& head);
         EXPECT_EQ(i+1, size);
     }
@@ -207,7 +207,7 @@ TEST(List, Append)
     //  Append to stack
     for (int i = 0; i < num; i++)
     {
-        list_append((void**) & head, & items[i], pnext_item, 0);
+        list_append((pList*) & head, (pList) & items[i], pnext_item, 0);
         size = item_size(& head);
         EXPECT_EQ(i+1, size);
     }
@@ -255,7 +255,7 @@ TEST(List, Remove)
     //  Append to stack
     for (int i = 0; i < num; i++)
     {
-        list_append((void**) & head, & items[i], pnext_item, 0);
+        list_append((pList*) & head, (pList) & items[i], pnext_item, 0);
         size = item_size(& head);
         EXPECT_EQ(i+1, size);
     }

@@ -5,23 +5,27 @@
 
 #include "mutex.h"
 
-typedef void** (*pnext)(void *item);
+struct ListItem;
 
-void list_push(void **head, void *w, pnext next_fn, Mutex *mutex);
-void list_append(void **head, void *w, pnext next_fn, Mutex *mutex);
-bool list_remove(void **head, void *w, pnext next_fn, Mutex *mutex);
-int list_size(void **head, pnext next_fn, Mutex *mutex);
+typedef struct ListItem *pList;
 
-void *list_pop(void **head, pnext next_fn, Mutex *mutex);
+typedef pList* (*pnext)(pList item);
 
-typedef int (*cmp_fn)(const void *w1, const void *w2);
+void list_push(pList *head, pList w, pnext next_fn, Mutex *mutex);
+void list_append(pList *head, pList w, pnext next_fn, Mutex *mutex);
+bool list_remove(pList *head, pList w, pnext next_fn, Mutex *mutex);
+int list_size(pList *head, pnext next_fn, Mutex *mutex);
 
-void list_add_sorted(void **head, void *w, pnext next_fn, cmp_fn cmp, Mutex *mutex);
+pList list_pop(pList *head, pnext next_fn, Mutex *mutex);
 
-typedef int (*visitor)(void *w, void *arg);
+typedef int (*cmp_fn)(const pList w1, const pList w2);
 
-void * list_find(void **head, pnext next_fn, visitor fn, void *arg, Mutex *mutex);
-void list_visit(void **head, pnext next_fn, visitor fn, void *arg, Mutex *mutex);
+void list_add_sorted(pList *head, pList w, pnext next_fn, cmp_fn cmp, Mutex *mutex);
+
+typedef int (*visitor)(pList w, void *arg);
+
+pList  list_find(pList *head, pnext next_fn, visitor fn, void *arg, Mutex *mutex);
+void list_visit(pList *head, pnext next_fn, visitor fn, void *arg, Mutex *mutex);
 
 #endif // __LIST_H__
 
