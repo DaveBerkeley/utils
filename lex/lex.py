@@ -342,7 +342,7 @@ class Colour:
 #
 
 def main():
-    p = argparse.ArgumentParser(description='log file filtering')
+    p = argparse.ArgumentParser(description='log file filtering', fromfile_prefix_chars='@')
     p.add_argument('-f', "--fmt", dest='fmt', help="output format", default="%(whole)s")
     p.add_argument('-m', "--match", dest='match', help="match", action="append", default=[])
     p.add_argument('-c', "--config", dest='config', help="config", action="append", default=[])
@@ -353,8 +353,19 @@ def main():
     p.add_argument('-E', "--error", dest='error', help="error", action="store_true")
     p.add_argument('-o', "--or", dest='logic_or', help="OR terms together, not AND", action="store_true")
     p.add_argument('-C', "--colour", dest='colour', help="coloured fields (seperated by ',')")
+    p.add_argument('-D', "--rc-default", dest='rc_default', action='store_true') 
 
-    args = p.parse_args()
+    args = []
+    opts = p.parse_args()
+
+    if opts.rc_default:
+        # defaults set in ~/.lexrc
+        config = os.path.expanduser('~/.lexrc')
+        if os.path.exists(config):
+            args.append('@' + config)
+
+    # override them with command line
+    args = p.parse_args(args)
 
     filt = _True()
 
