@@ -12,6 +12,7 @@ def log(*args):
 #
 
 def validate_month(match=None, word=None):
+    #log("validate_month", match, word)
     if word is None:
         if match is None:
             return None
@@ -22,6 +23,22 @@ def validate_month(match=None, word=None):
     except ValueError:
         return None
 
+def validate_dmy(match=None, word=None):
+    #log("validate_dmy", match, word)
+    if word is None:
+        if match is None:
+            return None
+    d, m, y = match.groups()
+    #log("dmy", d, m, y)
+    try:
+        dt = datetime.datetime.strptime(m, "%b")
+        result = "%s/%02d/%s" % (d, dt.month, y)
+        #log("r", result)
+        return result
+    except ValueError:
+        #log("error", word)
+        return None
+
 #
 #
 
@@ -30,6 +47,7 @@ re_m   = "^([A-Z][a-z][a-z])$"
 re_d   = "^(\d+)$"
 re_y   = "^(\d\d\d\d)$"
 re_ymd = "(\d\d\d\d)[/-](\d\d)[/-](\d\d)"
+re_dmy = "(\d\d)[/-]([A-Z][a-z][a-z])[/-](\d\d\d\d)"
 re_z   = "([+-]\d\d:\d\d)"
 re_us  = "(\.\d\d\d\d\d\d)"
 re_ms  = "(\.\d\d\d)"
@@ -37,6 +55,7 @@ re_ms  = "(\.\d\d\d)"
 res = {
     "hms"   : [ re_hms, None, ],
     "YMD"   : [ re_ymd, None, ],
+    "DMY"   : [ re_dmy, validate_dmy, ],
     "M"     : [ re_m, validate_month, ],
     "D"     : [ re_d, None, ],
     "Y"     : [ re_y, None, ],
@@ -57,11 +76,30 @@ prefer = [
 ]
 
 #
+#   Find the last occurence of the match
+
+def search(regex, text):
+    #log("search", regex.pattern, text)
+    found = None
+    offset = 0
+    while True:
+        #log("search", offset, text[offset:])
+        match = regex.search(text, offset)
+        if not match:
+            return found
+
+        found = match
+        # bump past the match, looking for a later one ..
+        offset += match.start() + 1
+
+#
 #
 
 def analyze(parts):
+    #log("analyze", parts)
     found = {}
     def matched(match):
+        #log("matched", match and match.groups())
         return match
     for i, part in enumerate(parts):
         seen = False
@@ -71,9 +109,11 @@ def analyze(parts):
                 continue
             validate_fn = validate or matched
             # check for whole match
+            #log("re", section, regex, part)
             r = re.compile("^" + regex + "$")
             match = r.match(part)
             if not validate_fn(match) is None:
+                #log("found whole")
                 seen = True
                 found[section] = i, section, match.span(), len(match.groups()), validate
                 continue
@@ -81,13 +121,16 @@ def analyze(parts):
                 continue
             # check for part match
             r = re.compile(regex)
-            match = r.search(part)
+            match = search(r, part)
             if not validate_fn(match) is None:
+                #log("found part")
                 seen = True
                 found[section] = i, section, match.span(), len(match.groups()), validate
         if not seen:
             # must find date/time values in first parts of the line
             break
+
+    #log("found", found)
 
     # remove duplicated (worse) matches
     best = {}
@@ -327,12 +370,16 @@ if __name__ == "__main__":
     must_have = [ "ymd", "hms", "dt", "fmt" ]
     tests = [
         [ "2018/11/10 00:08:34.123456 klatu postfix", [ "us" ], ],
+        [ '[11/Jan/2019:06:20:57 +0000] "GET /images/triac_drive.gif HTTP/1.1" 200 41882 "https://www.google.com/" "Mozilla/5.0 (Linux; Android 7.1.2; Redmi 4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.80 Mobile Safari/537.36"', [], ],
+
+        [ "2018/11/10 00:08:34.123456 klatu postfix", [ "us" ], ],
         [ "2018-10-18 07:32:47.266078 abcdef asdert:", [ "us" ], ],
         [ "2018-10-18 07:32:47.266 abcdef asdert:", [ "ms" ], ],
         [ "2018-10-18 07:32:47 abcdef asdert:", [], ],
         [ "2018-05-23T10:08:09.202422+00:00 host prog:", [ "us" ], ],
         [ "Nov 10 07:33:31 anything", [ ], ],
         [ "2018/08/12 06:33:04.224 37.49.224.116", [ "ms" ], ],
+        [ 'www.rotwang.co.uk:443 157.33.148.90 - - [11/Jan/2019:06:20:57 +0000] "GET /images/triac_drive.gif HTTP/1.1" 200 41882 "https://www.google.com/" "Mozilla/5.0 (Linux; Android 7.1.2; Redmi 4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.80 Mobile Safari/537.36"', [], ],
     ]
 
     for line, fields in tests:
