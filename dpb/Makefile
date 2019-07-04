@@ -2,21 +2,17 @@
 CC = g++
 LL = g++
 CFLAGS = -Wall -Wextra -g
-LDFLAGS = -pthread 
+LDFLAGS = -pthread
 
 # Link with google test
 GTEST = /usr/src/gtest
 LDFLAGS += $(GTEST)/libgtest_main.a
 LDFLAGS += $(GTEST)/libgtest.a
 
-# 
-CFLAGS += -I../dpb
-
-SRC = timed.c 
-SRC += ../dpb/list.c 
+SRC = list.c 
 XSRC = main.cpp
 
-APP = timed
+APP = dpb_test
 ODIR = obj
 OBJDIR = $(ODIR)/c
 XOBJDIR = $(ODIR)/cpp

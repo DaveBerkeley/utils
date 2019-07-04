@@ -5,8 +5,8 @@
 #include <string.h>
 #include <errno.h>
 
-#include "mutex.h"
-#include "list.h"
+#include <mutex.h>
+#include <list.h>
 #include "timed.h"
 
 // TODO : look at https://linux.die.net/man/2/eventfd 
@@ -157,6 +157,7 @@ static void timer_reschedule()
     Waiter *waiter = timer_peek();
     // TODO
     // check if a reshedule is needed
+    ASSERT(waiter);
 }
 
 static void timer_add(Waiter *w)
@@ -319,6 +320,12 @@ int semaphore_post(Semaphore *s)
 
     unlock(mutex);
     return 0;
+}
+
+void dummy()
+{
+    // Just to stop the compile warning 'till I get a chance to look at this again
+    timer_expire();
 }
 
 // FIN

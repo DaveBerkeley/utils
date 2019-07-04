@@ -3,8 +3,7 @@
 
 #include <gtest/gtest.h>
 
-#include <list.h>
-#include "timed.h"
+#include "list.h"
 
     /**
      * @brief helper function to create a table of indexes
@@ -509,17 +508,6 @@ TEST(List, Find)
 
     item = item_find(& head, & wrong, 0);
     EXPECT_EQ(0, item);
-}
-
-    /*
-     *
-     */
-
-TEST(Semaphore, Link)
-{
-    Semaphore s = SEMAPHORE_INIT;
-
-    semaphore_post(& s);
 }
 
 //  FIN
